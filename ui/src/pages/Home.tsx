@@ -139,6 +139,8 @@ const Home = () => {
   const [tempName, setTempName] = useState("");
   const [tempDescription, setTempDescription] = useState("");
   const [tempPrice, setTempPrice] = useState("");
+  const [aiInstructions, setAiInstructions] = useState("");
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   // Get order context
   const { addToOrder, orderItems, totalItems } = useOrder();
@@ -229,6 +231,49 @@ const Home = () => {
     }
     setShowEditModal(false);
     setEditingItem(null);
+    setAiInstructions(""); // Reset AI instructions
+  };
+
+  // Function to enhance product with AI
+  const handleAiEnhance = async () => {
+    if (!editingItem || !aiInstructions.trim()) return;
+
+    setIsAiLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:3000/api/ai/modify-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product: {
+            name: tempName,
+            description: tempDescription,
+            price: parseFloat(tempPrice),
+          },
+          instructions: aiInstructions,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enhance product');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data.updated) {
+        // Update form fields with AI-enhanced content
+        setTempName(data.data.updated.name);
+        setTempDescription(data.data.updated.description);
+        setTempPrice(data.data.updated.price.toString());
+      }
+    } catch (error) {
+      console.error('Error enhancing product:', error);
+      // You could add error handling UI here
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   return (
@@ -337,7 +382,7 @@ const Home = () => {
       {/* Edit Product Modal */}
       {showEditModal && editingItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
+          <div className="bg-white rounded-lg p-6 w-96 shadow-xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Edit Product</h3>
             
             <div className="mb-4">
@@ -376,6 +421,56 @@ const Home = () => {
                 onChange={(e) => setTempPrice(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            
+            {/* AI Enhancement Section */}
+            <div className="mb-6 border-t pt-4 mt-4">
+              <div className="flex items-center mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                </svg>
+                <h4 className="text-md font-medium text-gray-800">AI Enhancement</h4>
+              </div>
+              
+              <div className="mb-3">
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Instructions for AI
+                </label>
+                <textarea
+                  value={aiInstructions}
+                  onChange={(e) => setAiInstructions(e.target.value)}
+                  placeholder="E.g., Make the name more appealing, improve the description, increase the price by 10%..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  rows={2}
+                />
+              </div>
+              
+              <button
+                onClick={handleAiEnhance}
+                disabled={isAiLoading || !aiInstructions.trim()}
+                className={`w-full flex items-center justify-center px-4 py-2 rounded-md ${
+                  isAiLoading || !aiInstructions.trim()
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-purple-600 text-white hover:bg-purple-700"
+                } transition-colors`}
+              >
+                {isAiLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Enhancing...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Enhance with AI
+                  </>
+                )}
+              </button>
             </div>
             
             <div className="flex justify-end space-x-2">
