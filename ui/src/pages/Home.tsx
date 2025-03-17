@@ -133,13 +133,19 @@ const Home = () => {
     }
   ]);
 
-  // State for edit modal
+  // State for modals
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [tempName, setTempName] = useState("");
   const [tempDescription, setTempDescription] = useState("");
   const [tempPrice, setTempPrice] = useState("");
+  const [tempCategory, setTempCategory] = useState("");
+  const [tempImage, setTempImage] = useState("");
+  
+  // AI enhancement states
   const [aiInstructions, setAiInstructions] = useState("");
+  const [createAiInstructions, setCreateAiInstructions] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   // Get order context
@@ -234,6 +240,55 @@ const Home = () => {
     setAiInstructions(""); // Reset AI instructions
   };
 
+  // Function to handle creating a new product
+  const handleCreateProduct = () => {
+    // Validate inputs
+    if (!tempName.trim() || !tempCategory || !tempPrice.trim()) {
+      return; // Don't proceed if required fields are empty
+    }
+
+    const price = parseFloat(tempPrice);
+    if (isNaN(price) || price <= 0) {
+      return; // Don't proceed if price is invalid
+    }
+
+    // Generate a new unique ID
+    const newId = Math.max(...menuItems.map(item => item.id)) + 1;
+
+    // Create the new menu item
+    const newMenuItem: MenuItem = {
+      id: newId,
+      name: tempName,
+      description: tempDescription,
+      category: tempCategory,
+      price: price,
+      image: tempImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=60" // Default image if none provided
+    };
+
+    // Add to menu items
+    setMenuItems(prev => [...prev, newMenuItem]);
+
+    // Reset form and close modal
+    setTempName("");
+    setTempDescription("");
+    setTempPrice("");
+    setTempCategory("");
+    setTempImage("");
+    setCreateAiInstructions(""); // Reset AI instructions
+    setShowCreateModal(false);
+  };
+
+  // Function to open create modal
+  const handleOpenCreateModal = () => {
+    setTempName("");
+    setTempDescription("");
+    setTempPrice("");
+    setTempCategory(categories[0].name); // Default to first category
+    setTempImage("");
+    setCreateAiInstructions(""); // Reset AI instructions
+    setShowCreateModal(true);
+  };
+
   // Function to enhance product with AI
   const handleAiEnhance = async () => {
     if (!editingItem || !aiInstructions.trim()) return;
@@ -276,6 +331,51 @@ const Home = () => {
     }
   };
 
+  // Function to create product with AI
+  const handleAiCreate = async () => {
+    if (!createAiInstructions.trim()) return;
+
+    setIsAiLoading(true);
+    
+    try {
+      // Create a basic product template with the selected category
+      const productTemplate = {
+        name: tempName || `New ${tempCategory} Item`,
+        description: tempDescription || "Product description",
+        price: parseFloat(tempPrice) || 9.99,
+      };
+
+      const response = await fetch('http://localhost:3000/api/ai/modify-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product: productTemplate,
+          instructions: createAiInstructions,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create product with AI');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data.updated) {
+        // Update form fields with AI-generated content
+        setTempName(data.data.updated.name);
+        setTempDescription(data.data.updated.description);
+        setTempPrice(data.data.updated.price.toString());
+      }
+    } catch (error) {
+      console.error('Error creating product with AI:', error);
+      // You could add error handling UI here
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   return (
     <div className="h-full">
       {/* Categories */}
@@ -283,6 +383,12 @@ const Home = () => {
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-semibold text-gray-800">Menu Categories</h2>
           <div className="flex space-x-2">
+            <button
+              onClick={handleOpenCreateModal}
+              className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+            >
+              Create
+            </button>
             <button
               onClick={clearAllCategories}
               className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
@@ -376,6 +482,153 @@ const Home = () => {
       {totalItems > 0 && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white px-4 py-2 rounded-full shadow-lg md:hidden">
           {totalItems} item{totalItems !== 1 ? 's' : ''} selected
+        </div>
+      )}
+
+      {/* Create Product Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Create New Product</h3>
+            
+            {/* AI Creation Section */}
+            <div className="mb-6">
+              <div className="flex items-center mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                </svg>
+                <h4 className="text-md font-medium text-gray-800">AI Creation</h4>
+              </div>
+              
+              <div className="mb-3">
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Instructions for AI
+                </label>
+                <textarea
+                  value={createAiInstructions}
+                  onChange={(e) => setCreateAiInstructions(e.target.value)}
+                  placeholder="E.g., Make the name more appealing, improve the description, increase the price by 10%..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  rows={2}
+                />
+              </div>
+              
+              <button
+                onClick={handleAiCreate}
+                disabled={isAiLoading || !createAiInstructions.trim() || !tempCategory}
+                className={`w-full flex items-center justify-center px-4 py-2 rounded-md ${
+                  isAiLoading || !createAiInstructions.trim() || !tempCategory
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-purple-600 text-white hover:bg-purple-700"
+                } transition-colors`}
+              >
+                {isAiLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Create with AI
+                  </>
+                )}
+              </button>
+            </div>
+            
+            <div className="border-t border-gray-200 pt-6 mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Product Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Enter product name"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Description
+              </label>
+              <textarea
+                value={tempDescription}
+                onChange={(e) => setTempDescription(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                rows={3}
+                placeholder="Enter product description"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={tempCategory}
+                onChange={(e) => setTempCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Price ($) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={tempPrice}
+                onChange={(e) => setTempPrice(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Image URL
+              </label>
+              <input
+                type="text"
+                value={tempImage}
+                onChange={(e) => setTempImage(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Enter image URL (optional)"
+              />
+              <p className="text-xs text-gray-500 mt-1">Leave empty to use a default image</p>
+            </div>
+            
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateProduct}
+                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+              >
+                Create Product
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
