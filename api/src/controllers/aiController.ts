@@ -6,6 +6,7 @@ interface ProductData {
   name: string;
   description: string;
   price: number;
+  image?: string;
 }
 
 // Initialize OpenAI client
@@ -104,6 +105,83 @@ export const getModels = async (_req: Request, res: Response) => {
     return res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to fetch AI models' 
+    });
+  }
+};
+
+/**
+ * Generate an image for a dish based on its name and description
+ * @param req Express request object
+ * @param res Express response object
+ */
+export const generateDishImage = async (req: Request, res: Response) => {
+  try {
+    const { name, description, category } = req.body;
+    
+    // Validate request body
+    if (!name) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Dish name is required' 
+      });
+    }
+
+    if (!config.ai.apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'OpenAI API key is not configured. Please set the AI_API_KEY environment variable.'
+      });
+    }
+    
+    // Extract key ingredients from description
+    let ingredients = '';
+    if (description) {
+      // Simple extraction of potential ingredients by looking for common food items
+      const words = description.toLowerCase().split(/\s+/);
+      const foodWords = words.filter(word => 
+        word.length > 3 && 
+        !['with', 'and', 'the', 'for', 'from', 'that', 'this', 'these', 'those', 'over', 'under', 'about'].includes(word)
+      );
+      ingredients = foodWords.join(', ');
+    }
+    
+    // Create a prompt for DALL-E to generate a dish image
+    const prompt = `A professional, appetizing food photography image of ${name}${category ? ` (${category})` : ''}.${
+      ingredients ? ` The dish contains ${ingredients}.` : ''
+    } The image should be well-lit, with the dish as the main focus, styled as a high-end restaurant presentation on a clean background. Photorealistic style, not illustration.`;
+    
+    // Call OpenAI API to generate an image
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+    });
+
+    // Extract the image URL
+    const imageUrl = response.data[0]?.url;
+    
+    if (!imageUrl) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to generate image' 
+      });
+    }
+    
+    return res.json({
+      success: true,
+      data: {
+        imageUrl: imageUrl,
+        prompt: prompt,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error: any) {
+    console.error('Error in AI generate dish image endpoint:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Server error' 
     });
   }
 };

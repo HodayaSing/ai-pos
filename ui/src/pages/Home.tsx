@@ -147,6 +147,7 @@ const Home = () => {
   const [aiInstructions, setAiInstructions] = useState("");
   const [createAiInstructions, setCreateAiInstructions] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
   const [showProductFields, setShowProductFields] = useState(false);
 
   // Get order context
@@ -214,6 +215,8 @@ const Home = () => {
     setTempName(item.name);
     setTempDescription(item.description || "");
     setTempPrice(item.price.toString());
+    setTempImage(item.image || ""); // Initialize image from the item
+    setAiInstructions(""); // Reset AI instructions
     setShowEditModal(true);
   };
 
@@ -253,7 +256,8 @@ const Home = () => {
                   ...item, 
                   name: tempName, 
                   description: tempDescription,
-                  price: price 
+                  price: price,
+                  image: tempImage || item.image // Use the new image if provided, otherwise keep the existing one
                 } 
               : item
           )
@@ -468,6 +472,11 @@ const Home = () => {
           setTempName(updatedName);
           setTempDescription(updatedDescription);
           setTempPrice(finalPrice.toString());
+          
+          // Generate a new image to match the significantly changed dish
+          if (editingItem) {
+            handleGenerateDishImage(updatedName, updatedDescription, editingItem.category, true);
+          }
         } else {
           // If no significant content changes, use the AI's price
           setTempName(updatedName);
@@ -480,6 +489,43 @@ const Home = () => {
       // You could add error handling UI here
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  // Function to generate dish image based on name, description, and category
+  const handleGenerateDishImage = async (name: string, description: string, category: string, forEdit: boolean = false) => {
+    if (!name.trim()) return;
+    
+    setIsImageLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:3000/api/ai/generate-dish-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          category,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate dish image');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data.imageUrl) {
+        // Update the image URL
+        setTempImage(data.data.imageUrl);
+      }
+    } catch (error) {
+      console.error('Error generating dish image:', error);
+      // You could add error handling UI here
+    } finally {
+      setIsImageLoading(false);
     }
   };
 
@@ -516,11 +562,20 @@ const Home = () => {
       
       if (data.success && data.data.updated) {
         // Update form fields with AI-generated content
-        setTempName(data.data.updated.name);
-        setTempDescription(data.data.updated.description);
+        const updatedName = data.data.updated.name;
+        const updatedDescription = data.data.updated.description;
+        
+        setTempName(updatedName);
+        setTempDescription(updatedDescription);
         setTempPrice(data.data.updated.price.toString());
+        
         // Show product fields after AI creation
         setShowProductFields(true);
+        
+        // Automatically generate an image for the new dish
+        if (updatedName && tempCategory) {
+          handleGenerateDishImage(updatedName, updatedDescription, tempCategory);
+        }
       }
     } catch (error) {
       console.error('Error creating product with AI:', error);
@@ -781,16 +836,51 @@ const Home = () => {
                 
                 <div className="mb-4">
                   <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Image URL
+                    Dish Image
                   </label>
-                  <input
-                    type="text"
-                    value={tempImage}
-                    onChange={(e) => setTempImage(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="Enter image URL (optional)"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Leave empty to use a default image</p>
+                  
+                  {tempImage ? (
+                    <div className="mb-3">
+                      <div className="w-full h-48 bg-cover bg-center rounded-md border border-gray-200" 
+                        style={{ backgroundImage: `url(${tempImage})` }}>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-3 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50 text-center">
+                      <p className="text-sm text-gray-500">No image selected</p>
+                    </div>
+                  )}
+                  
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={tempImage}
+                      onChange={(e) => setTempImage(e.target.value)}
+                      placeholder="Enter image URL"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                    />
+                    <button
+                      onClick={() => handleGenerateDishImage(tempName, tempDescription, tempCategory)}
+                      disabled={isImageLoading || !tempName.trim() || !tempCategory}
+                      className={`px-3 py-2 rounded-md text-sm ${
+                        isImageLoading || !tempName.trim() || !tempCategory
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-green-500 text-white hover:bg-green-600"
+                      }`}
+                    >
+                      {isImageLoading ? (
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        "Generate Image"
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Generate an AI image based on the dish name and description, or enter a URL manually
+                  </p>
                 </div>
               </>
             )}
@@ -878,6 +968,56 @@ const Home = () => {
                   Based on ingredients and category, a suggested price would be: ${calculateRealisticPrice(editingItem.category, tempDescription, tempName).toFixed(2)}
                 </p>
               )}
+            </div>
+            
+            {/* Image Preview and Generation */}
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Dish Image
+              </label>
+              
+              {tempImage ? (
+                <div className="mb-3">
+                  <div className="w-full h-48 bg-cover bg-center rounded-md border border-gray-200" 
+                    style={{ backgroundImage: `url(${tempImage})` }}>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50 text-center">
+                  <p className="text-sm text-gray-500">No image selected</p>
+                </div>
+              )}
+              
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={tempImage}
+                  onChange={(e) => setTempImage(e.target.value)}
+                  placeholder="Enter image URL"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <button
+                  onClick={() => handleGenerateDishImage(tempName, tempDescription, editingItem.category, true)}
+                  disabled={isImageLoading || !tempName.trim()}
+                  className={`px-3 py-2 rounded-md text-sm ${
+                    isImageLoading || !tempName.trim()
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-500 text-white hover:bg-blue-600"
+                  }`}
+                >
+                  {isImageLoading ? (
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    "Generate Image"
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Generate an AI image based on the dish name and description
+              </p>
             </div>
             
             {/* AI Enhancement Section */}
