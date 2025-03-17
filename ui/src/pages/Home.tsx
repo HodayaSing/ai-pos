@@ -147,6 +147,7 @@ const Home = () => {
   const [aiInstructions, setAiInstructions] = useState("");
   const [createAiInstructions, setCreateAiInstructions] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [showProductFields, setShowProductFields] = useState(false);
 
   // Get order context
   const { addToOrder, orderItems, totalItems } = useOrder();
@@ -286,6 +287,7 @@ const Home = () => {
     setTempCategory(categories[0].name); // Default to first category
     setTempImage("");
     setCreateAiInstructions(""); // Reset AI instructions
+    setShowProductFields(false); // Hide product fields when opening modal
     setShowCreateModal(true);
   };
 
@@ -367,6 +369,8 @@ const Home = () => {
         setTempName(data.data.updated.name);
         setTempDescription(data.data.updated.description);
         setTempPrice(data.data.updated.price.toString());
+        // Show product fields after AI creation
+        setShowProductFields(true);
       }
     } catch (error) {
       console.error('Error creating product with AI:', error);
@@ -541,78 +545,82 @@ const Home = () => {
               </button>
             </div>
             
-            <div className="border-t border-gray-200 pt-6 mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Product Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter product name"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Description
-              </label>
-              <textarea
-                value={tempDescription}
-                onChange={(e) => setTempDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                rows={3}
-                placeholder="Enter product description"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={tempCategory}
-                onChange={(e) => setTempCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Price ($) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={tempPrice}
-                onChange={(e) => setTempPrice(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="0.00"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Image URL
-              </label>
-              <input
-                type="text"
-                value={tempImage}
-                onChange={(e) => setTempImage(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Enter image URL (optional)"
-              />
-              <p className="text-xs text-gray-500 mt-1">Leave empty to use a default image</p>
-            </div>
+            {showProductFields && (
+              <>
+                <div className="border-t border-gray-200 pt-6 mb-4">
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Product Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter product name"
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={tempDescription}
+                    onChange={(e) => setTempDescription(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    rows={3}
+                    placeholder="Enter product description"
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={tempCategory}
+                    onChange={(e) => setTempCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Price ($) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={tempPrice}
+                    onChange={(e) => setTempPrice(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="0.00"
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    Image URL
+                  </label>
+                  <input
+                    type="text"
+                    value={tempImage}
+                    onChange={(e) => setTempImage(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter image URL (optional)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty to use a default image</p>
+                </div>
+              </>
+            )}
             
             <div className="flex justify-end space-x-2 mt-6">
               <button
@@ -625,7 +633,7 @@ const Home = () => {
                 onClick={handleCreateProduct}
                 className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
               >
-                Create Product
+                Save
               </button>
             </div>
           </div>
