@@ -220,8 +220,32 @@ const Home = () => {
   // Function to save edited item
   const handleSaveEdit = () => {
     if (editingItem) {
-      const price = parseFloat(tempPrice);
+      let price = parseFloat(tempPrice);
+      
       if (!isNaN(price) && price > 0) {
+        // Check if name or description has changed significantly
+        const nameChanged = tempName !== editingItem.name;
+        const descriptionChanged = tempDescription !== (editingItem.description || "");
+        
+        // If content has changed, suggest a new price based on our algorithm
+        if (nameChanged || descriptionChanged) {
+          const suggestedPrice = calculateRealisticPrice(
+            editingItem.category,
+            tempDescription,
+            tempName
+          );
+          
+          // If the user hasn't manually changed the price, or if the change is minimal,
+          // use our calculated price
+          const originalPrice = editingItem.price;
+          const userChangedPrice = Math.abs(price - originalPrice) > 0.01;
+          
+          if (!userChangedPrice) {
+            price = suggestedPrice;
+          }
+        }
+        
+        // Update the menu item
         setMenuItems(prev => 
           prev.map(item => 
             item.id === editingItem.id 
@@ -241,16 +265,114 @@ const Home = () => {
     setAiInstructions(""); // Reset AI instructions
   };
 
+  // Function to calculate realistic price based on category and description
+  const calculateRealisticPrice = (category: string, description: string = "", name: string = ""): number => {
+    console.log(`Calculating price for: Category=${category}, Name=${name}, Description=${description}`);
+    
+    // Exchange rate: 1 USD = 3.7 ILS (approximate)
+    const shekelToUsd = (shekelAmount: number) => shekelAmount / 3.7;
+    
+    // Base prices in shekels by category - increased variation
+    const basePrices: Record<string, number> = {
+      "Starters": 32,
+      "Breakfast": 48,
+      "Lunch": 68,
+      "Supper": 89,
+      "Desserts": 28,
+      "Beverages": 18
+    };
+    
+    // Get base price for category or default to 35 shekels
+    let basePrice = basePrices[category] || 35;
+    console.log(`Base price for ${category}: ${basePrice} shekels`);
+    
+    // Adjust price based on ingredients mentioned in description or name
+    const fullText = (description + " " + name).toLowerCase();
+    
+    // Premium ingredients that increase price
+    const premiumIngredients = [
+      { term: "salmon", increase: 25 },
+      { term: "beef", increase: 30 },
+      { term: "steak", increase: 40 },
+      { term: "shrimp", increase: 20 },
+      { term: "seafood", increase: 25 },
+      { term: "truffle", increase: 35 },
+      { term: "cheese", increase: 10 },
+      { term: "avocado", increase: 8 },
+      { term: "organic", increase: 15 },
+      { term: "special", increase: 10 },
+      { term: "premium", increase: 20 },
+      { term: "wellington", increase: 45 }
+    ];
+    
+    // Check for premium ingredients and adjust price
+    let ingredientAdjustment = 0;
+    premiumIngredients.forEach(ingredient => {
+      if (fullText.includes(ingredient.term)) {
+        ingredientAdjustment += ingredient.increase;
+        console.log(`Found ingredient: ${ingredient.term}, adding ${ingredient.increase} shekels`);
+      }
+    });
+    
+    basePrice += ingredientAdjustment;
+    console.log(`Price after ingredients: ${basePrice} shekels`);
+    
+    // Adjust for portion size if mentioned
+    if (fullText.includes("large") || fullText.includes("extra") || fullText.includes("double")) {
+      const beforeSize = basePrice;
+      basePrice *= 1.3;
+      console.log(`Large portion detected, increasing from ${beforeSize} to ${basePrice} shekels`);
+    }
+    
+    // Convert to USD
+    const priceInUsd = shekelToUsd(basePrice);
+    console.log(`Price in USD (raw): ${priceInUsd}`);
+    
+    // Add random variation to make prices more unique (±10%)
+    const variationFactor = 0.9 + (Math.random() * 0.2); // Between 0.9 and 1.1
+    const priceWithVariation = priceInUsd * variationFactor;
+    console.log(`Added random variation: ${priceInUsd} → ${priceWithVariation}`);
+    
+    // Make prices look natural with .49 or .99 endings
+    let finalPrice: number;
+    
+    // Use a mix of price endings for more variety
+    const priceEndings = [0.49, 0.79, 0.89, 0.99];
+    const randomEndingIndex = Math.floor(Math.random() * priceEndings.length);
+    
+    if (priceWithVariation < 10) {
+      // For cheaper items, use random endings
+      finalPrice = Math.floor(priceWithVariation) + priceEndings[randomEndingIndex];
+    } else if (priceWithVariation < 20) {
+      // For medium-priced items, prefer .99
+      finalPrice = Math.floor(priceWithVariation) + 0.99;
+    } else {
+      // For expensive items, round to nearest whole number + .99
+      finalPrice = Math.floor(priceWithVariation) + 0.99;
+    }
+    
+    console.log(`Final price: $${finalPrice.toFixed(2)}`);
+    return parseFloat(finalPrice.toFixed(2));
+  };
+
   // Function to handle creating a new product
   const handleCreateProduct = () => {
     // Validate inputs
-    if (!tempName.trim() || !tempCategory || !tempPrice.trim()) {
-      return; // Don't proceed if required fields are empty
+    if (!tempName.trim() || !tempCategory) {
+      return; // Don't proceed if required name or category fields are empty
     }
 
-    const price = parseFloat(tempPrice);
-    if (isNaN(price) || price <= 0) {
-      return; // Don't proceed if price is invalid
+    // If price is empty, calculate it based on our algorithm
+    let price: number;
+    
+    if (!tempPrice.trim()) {
+      price = calculateRealisticPrice(tempCategory, tempDescription, tempName);
+    } else {
+      price = parseFloat(tempPrice);
+      if (isNaN(price) || price <= 0) {
+        // If price is invalid, use our calculated price
+        price = calculateRealisticPrice(tempCategory, tempDescription, tempName);
+      }
     }
 
     // Generate a new unique ID
@@ -321,9 +443,37 @@ const Home = () => {
       
       if (data.success && data.data.updated) {
         // Update form fields with AI-enhanced content
-        setTempName(data.data.updated.name);
-        setTempDescription(data.data.updated.description);
-        setTempPrice(data.data.updated.price.toString());
+        const updatedName = data.data.updated.name;
+        const updatedDescription = data.data.updated.description;
+        
+        // If the AI significantly changed the name or description, recalculate the price
+        const nameChanged = updatedName !== tempName;
+        const descriptionChanged = updatedDescription !== tempDescription;
+        
+        if (nameChanged || descriptionChanged) {
+          // Use our pricing algorithm if the content has changed significantly
+          const suggestedPrice = calculateRealisticPrice(
+            editingItem.category, 
+            updatedDescription, 
+            updatedName
+          );
+          
+          // Only use the suggested price if it's different enough from the current price
+          const currentPrice = parseFloat(tempPrice);
+          const priceDifference = Math.abs(suggestedPrice - currentPrice) / currentPrice;
+          
+          // If price difference is more than 15%, use the new calculated price
+          const finalPrice = priceDifference > 0.15 ? suggestedPrice : data.data.updated.price;
+          
+          setTempName(updatedName);
+          setTempDescription(updatedDescription);
+          setTempPrice(finalPrice.toString());
+        } else {
+          // If no significant content changes, use the AI's price
+          setTempName(updatedName);
+          setTempDescription(updatedDescription);
+          setTempPrice(data.data.updated.price.toString());
+        }
       }
     } catch (error) {
       console.error('Error enhancing product:', error);
@@ -344,7 +494,7 @@ const Home = () => {
       const productTemplate = {
         name: tempName || `New ${tempCategory} Item`,
         description: tempDescription || "Product description",
-        price: parseFloat(tempPrice) || 9.99,
+        price: parseFloat(tempPrice) || calculateRealisticPrice(tempCategory, tempDescription, tempName),
       };
 
       const response = await fetch('http://localhost:3000/api/ai/modify-product', {
@@ -595,15 +745,38 @@ const Home = () => {
                   <label className="block text-gray-700 text-sm font-medium mb-2">
                     Price ($) <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={tempPrice}
-                    onChange={(e) => setTempPrice(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="0.00"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={tempPrice}
+                      onChange={(e) => setTempPrice(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="0.00"
+                    />
+                    {tempName && tempCategory && !tempPrice && (
+                      <button
+                        onClick={() => {
+                          const suggestedPrice = calculateRealisticPrice(
+                            tempCategory,
+                            tempDescription,
+                            tempName
+                          );
+                          setTempPrice(suggestedPrice.toString());
+                        }}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                        type="button"
+                      >
+                        Suggest Price
+                      </button>
+                    )}
+                  </div>
+                  {tempName && tempCategory && !tempPrice && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Suggested price: ${calculateRealisticPrice(tempCategory, tempDescription, tempName).toFixed(2)}
+                    </p>
+                  )}
                 </div>
                 
                 <div className="mb-4">
@@ -674,14 +847,37 @@ const Home = () => {
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Price ($)
               </label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={tempPrice}
-                onChange={(e) => setTempPrice(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={tempPrice}
+                  onChange={(e) => setTempPrice(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {editingItem && (
+                  <button
+                    onClick={() => {
+                      const suggestedPrice = calculateRealisticPrice(
+                        editingItem.category,
+                        tempDescription,
+                        tempName
+                      );
+                      setTempPrice(suggestedPrice.toString());
+                    }}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                    type="button"
+                  >
+                    Recalculate
+                  </button>
+                )}
+              </div>
+              {editingItem && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Based on ingredients and category, a suggested price would be: ${calculateRealisticPrice(editingItem.category, tempDescription, tempName).toFixed(2)}
+                </p>
+              )}
             </div>
             
             {/* AI Enhancement Section */}
