@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useOrder } from "../context/OrderContext";
 import { useSearch } from "../context/SearchContext";
+import * as productService from "../services/productService";
 
+// MenuItem interface for the UI
 interface MenuItem {
   id: number;
   name: string;
   category: string;
   price: number;
   image: string;
-  description?: string; // Added description field
+  description?: string;
 }
 
 const Home = () => {
@@ -22,116 +24,42 @@ const Home = () => {
     { id: 6, name: "Beverages", active: false },
   ]);
 
-  // Convert menuItems to state so we can update them
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    // Starters
-    {
-      id: 1,
-      name: "Spicy Shrimp Soup",
-      description: "A delicious spicy soup with fresh shrimp and vegetables",
-      category: "Starters",
-      price: 12.99,
-      image: "https://images.unsplash.com/photo-1626804475297-41608ea09aeb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHNvdXB8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
-    },
-    {
-      id: 2,
-      name: "Bruschetta",
-      description: "Toasted bread topped with fresh tomatoes, basil, and olive oil",
-      category: "Starters",
-      price: 8.50,
-      image: "https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8YnJ1c2NoZXR0YXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-    },
+  // State for menu items
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch products from API when component mounts
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const products = await productService.getAllProducts();
+        
+        // Map API products to MenuItem format, ensuring all required fields are present
+        const menuItemsFromAPI = products
+          .filter(product => product.id !== undefined) // Filter out products without an id
+          .map(product => ({
+            id: product.id as number, // We've filtered out undefined ids
+            name: product.name,
+            category: product.category,
+            price: product.price,
+            image: product.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=60", // Default image if none provided
+            description: product.description
+          }));
+        
+        setMenuItems(menuItemsFromAPI);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Breakfast
-    {
-      id: 3,
-      name: "Avocado Toast",
-      description: "Toasted sourdough bread with mashed avocado, salt, and pepper",
-      category: "Breakfast",
-      price: 10.99,
-      image: "https://images.unsplash.com/photo-1603046891744-76e6300f82ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YXZvY2FkbyUyMHRvYXN0fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-    },
-    {
-      id: 4,
-      name: "Eggs Benedict",
-      description: "English muffin topped with poached eggs, ham, and hollandaise sauce",
-      category: "Breakfast",
-      price: 14.50,
-      image: "https://images.unsplash.com/photo-1608039829572-78524f79c4c7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZWdncyUyMGJlbmVkaWN0fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-    },
-    
-    // Lunch
-    {
-      id: 5,
-      name: "Schezwan Egg Noodles",
-      description: "Stir-fried egg noodles with vegetables in a spicy Schezwan sauce",
-      category: "Lunch",
-      price: 24.00,
-      image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8bm9vZGxlc3xlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-    },
-    {
-      id: 6,
-      name: "Thai Style Fried Noodles",
-      description: "Rice noodles stir-fried with vegetables and Thai spices",
-      category: "Lunch",
-      price: 22.50,
-      image: "https://images.unsplash.com/photo-1552611052-33e04de081de?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fG5vb2RsZXN8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
-    },
-    
-    // Supper
-    {
-      id: 7,
-      name: "Grilled Salmon",
-      description: "Fresh salmon fillet grilled to perfection with herbs and lemon",
-      category: "Supper",
-      price: 28.99,
-      image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c2FsbW9ufGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60"
-    },
-    {
-      id: 8,
-      name: "Beef Wellington",
-      description: "Tender beef fillet wrapped in puff pastry with mushroom duxelles",
-      category: "Supper",
-      price: 34.50,
-      image: "https://images.unsplash.com/photo-1600891964092-4316c288032e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YmVlZiUyMHdlbGxpbmd0b258ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
-    },
-    
-    // Desserts
-    {
-      id: 9,
-      name: "Chocolate Lava Cake",
-      description: "Warm chocolate cake with a molten chocolate center",
-      category: "Desserts",
-      price: 9.99,
-      image: "https://images.unsplash.com/photo-1617305855058-336d24456869?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2hvY29sYXRlJTIwbGF2YSUyMGNha2V8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
-    },
-    {
-      id: 10,
-      name: "Tiramisu",
-      description: "Italian dessert with layers of coffee-soaked ladyfingers and mascarpone cream",
-      category: "Desserts",
-      price: 8.50,
-      image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dGlyYW1pc3V8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
-    },
-    
-    // Beverages
-    {
-      id: 11,
-      name: "Fresh Fruit Smoothie",
-      description: "Blend of seasonal fruits with yogurt and honey",
-      category: "Beverages",
-      price: 6.99,
-      image: "https://images.unsplash.com/photo-1505252585461-04db1eb84625?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c21vb3RoaWV8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=500&q=60"
-    },
-    {
-      id: 12,
-      name: "Iced Coffee",
-      description: "Cold brewed coffee served over ice with cream and sugar",
-      category: "Beverages",
-      price: 4.50,
-      image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aWNlZCUyMGNvZmZlZXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=500&q=60"
-    }
-  ]);
+    fetchProducts();
+  }, []);
 
   // State for modals
   const [showEditModal, setShowEditModal] = useState(false);
@@ -221,7 +149,7 @@ const Home = () => {
   };
 
   // Function to save edited item
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingItem) {
       let price = parseFloat(tempPrice);
       
@@ -248,20 +176,35 @@ const Home = () => {
           }
         }
         
-        // Update the menu item
-        setMenuItems(prev => 
-          prev.map(item => 
-            item.id === editingItem.id 
-              ? { 
-                  ...item, 
-                  name: tempName, 
-                  description: tempDescription,
-                  price: price,
-                  image: tempImage || item.image // Use the new image if provided, otherwise keep the existing one
-                } 
-              : item
-          )
-        );
+        try {
+          // Update the product in the API
+          const updatedProduct = await productService.updateProduct(editingItem.id, {
+            name: tempName,
+            description: tempDescription,
+            price: price,
+            image: tempImage || editingItem.image
+          });
+          
+          // Update the local state
+          setMenuItems(prev => 
+            prev.map(item => 
+              item.id === editingItem.id 
+                ? { 
+                    ...item, 
+                    name: tempName, 
+                    description: tempDescription,
+                    price: price,
+                    image: tempImage || item.image
+                  } 
+                : item
+            )
+          );
+          
+          console.log('Product updated successfully:', updatedProduct);
+        } catch (error) {
+          console.error('Error updating product:', error);
+          // You could add error handling UI here
+        }
       }
     }
     setShowEditModal(false);
@@ -360,7 +303,7 @@ const Home = () => {
   };
 
   // Function to handle creating a new product
-  const handleCreateProduct = () => {
+  const handleCreateProduct = async () => {
     // Validate inputs
     if (!tempName.trim() || !tempCategory) {
       return; // Don't proceed if required name or category fields are empty
@@ -379,21 +322,37 @@ const Home = () => {
       }
     }
 
-    // Generate a new unique ID
-    const newId = Math.max(...menuItems.map(item => item.id)) + 1;
-
-    // Create the new menu item
-    const newMenuItem: MenuItem = {
-      id: newId,
-      name: tempName,
-      description: tempDescription,
-      category: tempCategory,
-      price: price,
-      image: tempImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=60" // Default image if none provided
-    };
-
-    // Add to menu items
-    setMenuItems(prev => [...prev, newMenuItem]);
+    // Default image if none provided
+    const defaultImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=60";
+    
+    try {
+      // Create the product in the API
+      const newProduct = await productService.createProduct({
+        name: tempName,
+        description: tempDescription,
+        category: tempCategory,
+        price: price,
+        image: tempImage || defaultImage
+      });
+      
+      // Add the new product to the local state
+      if (newProduct.id) {
+        const newMenuItem: MenuItem = {
+          id: newProduct.id,
+          name: newProduct.name,
+          description: newProduct.description,
+          category: newProduct.category,
+          price: newProduct.price,
+          image: newProduct.image || defaultImage
+        };
+        
+        setMenuItems(prev => [...prev, newMenuItem]);
+        console.log('Product created successfully:', newProduct);
+      }
+    } catch (error) {
+      console.error('Error creating product:', error);
+      // You could add error handling UI here
+    }
 
     // Reset form and close modal
     setTempName("");
@@ -415,6 +374,25 @@ const Home = () => {
     setCreateAiInstructions(""); // Reset AI instructions
     setShowProductFields(false); // Hide product fields when opening modal
     setShowCreateModal(true);
+  };
+  
+  // Function to handle deleting a product
+  const handleDeleteProduct = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        // Delete the product from the API
+        const success = await productService.deleteProduct(id);
+        
+        if (success) {
+          // Remove the product from the local state
+          setMenuItems(prev => prev.filter(item => item.id !== id));
+          console.log('Product deleted successfully');
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        // You could add error handling UI here
+      }
+    }
   };
 
   // Function to enhance product with AI
@@ -642,15 +620,25 @@ const Home = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {filteredItems.map((item) => (
           <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            {/* Edit Button */}
-            <button 
-              onClick={() => handleEditClick(item)}
-              className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow-md hover:bg-gray-100 z-10"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
+            {/* Edit and Delete Buttons */}
+            <div className="absolute top-2 right-2 flex space-x-2 z-10">
+              <button 
+                onClick={() => handleEditClick(item)}
+                className="bg-white p-1.5 rounded-full shadow-md hover:bg-gray-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button 
+                onClick={() => handleDeleteProduct(item.id)}
+                className="bg-white p-1.5 rounded-full shadow-md hover:bg-gray-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
             
             <div 
               className="w-full h-48 bg-cover bg-center" 

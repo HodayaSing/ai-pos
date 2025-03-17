@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config';
 import aiRoutes from './routes/aiRoutes';
+import productRoutes from './routes/productRoutes';
+import { initializeDatabase } from './db';
 
 // Initialize express app
 const app = express();
@@ -35,8 +37,16 @@ app.get('/', (req, res) => {
 
 // Mount API routes
 app.use('/api/ai', aiRoutes);
+app.use('/api/products', productRoutes);
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+// Initialize the database and start the server
+initializeDatabase()
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`Server running at http://localhost:${port}`);
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  });
