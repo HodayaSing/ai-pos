@@ -143,6 +143,7 @@ const Home = () => {
     setTempName(item.name);
     setTempDescription(item.description || "");
     setTempPrice(item.price.toString());
+    setTempCategory(item.category); // Initialize category from the item
     setTempImage(item.image || ""); // Initialize image from the item
     setAiInstructions(""); // Reset AI instructions
     setShowEditModal(true);
@@ -157,11 +158,12 @@ const Home = () => {
         // Check if name or description has changed significantly
         const nameChanged = tempName !== editingItem.name;
         const descriptionChanged = tempDescription !== (editingItem.description || "");
+        const categoryChanged = tempCategory !== editingItem.category;
         
         // If content has changed, suggest a new price based on our algorithm
-        if (nameChanged || descriptionChanged) {
+        if (nameChanged || descriptionChanged || categoryChanged) {
           const suggestedPrice = calculateRealisticPrice(
-            editingItem.category,
+            tempCategory, // Use the new category for price calculation
             tempDescription,
             tempName
           );
@@ -181,6 +183,7 @@ const Home = () => {
           const updatedProduct = await productService.updateProduct(editingItem.id, {
             name: tempName,
             description: tempDescription,
+            category: tempCategory, // Include category in the update
             price: price,
             image: tempImage || editingItem.image
           });
@@ -193,6 +196,7 @@ const Home = () => {
                     ...item, 
                     name: tempName, 
                     description: tempDescription,
+                    category: tempCategory, // Update category in local state
                     price: price,
                     image: tempImage || item.image
                   } 
@@ -917,6 +921,24 @@ const Home = () => {
             
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-medium mb-2">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={tempCategory}
+                onChange={(e) => setTempCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
                 Price ($)
               </label>
               <div className="relative">
@@ -932,7 +954,7 @@ const Home = () => {
                   <button
                     onClick={() => {
                       const suggestedPrice = calculateRealisticPrice(
-                        editingItem.category,
+                        tempCategory, // Use the current category selection
                         tempDescription,
                         tempName
                       );
@@ -947,7 +969,7 @@ const Home = () => {
               </div>
               {editingItem && (
                 <p className="text-xs text-blue-600 mt-1">
-                  Based on ingredients and category, a suggested price would be: ${calculateRealisticPrice(editingItem.category, tempDescription, tempName).toFixed(2)}
+                  Based on ingredients and category, a suggested price would be: ${calculateRealisticPrice(tempCategory, tempDescription, tempName).toFixed(2)}
                 </p>
               )}
             </div>
