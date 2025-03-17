@@ -7,7 +7,7 @@ interface ContentContainerProps {
 
 const ContentContainer: React.FC<ContentContainerProps> = ({ children, className = '' }) => {
   return (
-    <main className={`flex-1 overflow-y-auto bg-gray-50 p-6 ${className}`}>
+    <main className={`flex-1 overflow-y-auto bg-gray-50 p-6 pb-16 ${className}`}>
       {children}
     </main>
   );

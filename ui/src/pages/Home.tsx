@@ -675,12 +675,6 @@ const Home = () => {
         ))}
       </div>
 
-      {/* Selected Items Indicator (Mobile) */}
-      {totalItems > 0 && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white px-4 py-2 rounded-full shadow-lg md:hidden">
-          {totalItems} item{totalItems !== 1 ? 's' : ''} selected
-        </div>
-      )}
 
       {/* Create Product Modal */}
       {showCreateModal && (

@@ -42,11 +42,7 @@ interface OrderProviderProps {
 }
 
 export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    // Initial sample items (can be empty in a real app)
-    { id: 1, name: 'Schezwan Egg Noodles', price: 25.00, quantity: 1, category: 'Noodles' },
-    { id: 2, name: 'Spicy Shrimp Soup', price: 40.00, quantity: 1, category: 'Soup' },
-  ]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [tipType, setTipType] = useState<TipType>('percentage');
   const [tipValue, setTipValue] = useState(0); // 0%, 10%, 15%, 20% or fixed amount
   const [discountAmount, setDiscountAmount] = useState(0);
