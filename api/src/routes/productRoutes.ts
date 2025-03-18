@@ -7,6 +7,7 @@ import {
   deleteProduct,
   getProductsByCategory
 } from '../controllers/productController';
+import { upload } from '../utils/fileUpload';
 
 const router = express.Router();
 
@@ -14,8 +15,8 @@ const router = express.Router();
 router.get('/', getAllProducts);
 router.get('/category/:category', getProductsByCategory);
 router.get('/:id', getProductById);
-router.post('/', createProduct);
-router.put('/:id', updateProduct);
+router.post('/', upload.single('image'), createProduct);
+router.put('/:id', upload.single('image'), updateProduct);
 router.delete('/:id', deleteProduct);
 
 export default router;

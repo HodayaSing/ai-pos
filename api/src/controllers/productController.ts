@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as ProductModel from '../models/productModel';
 import { Product } from '../models/productModel';
+import { getImagePath } from '../utils/fileUpload';
 
 /**
  * Get all products
@@ -87,6 +88,11 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
     
+    // Handle image file if uploaded
+    if (req.file) {
+      productData.image = getImagePath(req.file.filename);
+    }
+    
     const product = await ProductModel.createProduct(productData);
     
     return res.status(201).json({
@@ -111,6 +117,11 @@ export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const productData: Partial<Product> = req.body;
+    
+    // Handle image file if uploaded
+    if (req.file) {
+      productData.image = getImagePath(req.file.filename);
+    }
     
     if (!id || isNaN(Number(id))) {
       return res.status(400).json({ 

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { config } from './config';
 import aiRoutes from './routes/aiRoutes';
 import productRoutes from './routes/productRoutes';
@@ -11,6 +12,7 @@ const port = config.server.port;
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl requests)
@@ -26,6 +28,9 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Basic route for testing
 app.get('/', (req, res) => {
