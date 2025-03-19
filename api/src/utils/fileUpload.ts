@@ -1,6 +1,8 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import https from 'https';
+import http from 'http';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -44,4 +46,58 @@ export const upload = multer({
 // Get the relative path for storing in the database
 export const getImagePath = (filename: string): string => {
   return `/uploads/${filename}`;
+};
+
+/**
+ * Download an image from a URL and save it to the uploads directory
+ * @param imageUrl URL of the image to download
+ * @returns Promise with the relative path to the saved image
+ */
+export const downloadImageFromUrl = (imageUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    // Create a unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = '.png'; // Default extension for AI-generated images
+    const filename = `ai-dish-${uniqueSuffix}${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    
+    // Create a write stream to save the file
+    const fileStream = fs.createWriteStream(filePath);
+    
+    // Determine if we should use http or https based on the URL
+    const requestLib = imageUrl.startsWith('https') ? https : http;
+    
+    // Make the request to download the image
+    const request = requestLib.get(imageUrl, (response) => {
+      // Check if the response is successful
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to download image: ${response.statusCode}`));
+        return;
+      }
+      
+      // Pipe the response to the file
+      response.pipe(fileStream);
+      
+      // Handle completion of the download
+      fileStream.on('finish', () => {
+        fileStream.close();
+        // Return the relative path to the image
+        resolve(getImagePath(filename));
+      });
+    });
+    
+    // Handle request errors
+    request.on('error', (err) => {
+      // Clean up the file if it was created
+      fs.unlink(filePath, () => {});
+      reject(err);
+    });
+    
+    // Handle file stream errors
+    fileStream.on('error', (err) => {
+      // Clean up the file if it was created
+      fs.unlink(filePath, () => {});
+      reject(err);
+    });
+  });
 };

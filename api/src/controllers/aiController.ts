@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import { config } from '../config';
+import { downloadImageFromUrl } from '../utils/fileUpload';
 
 interface ProductData {
   name: string;
@@ -169,14 +170,33 @@ export const generateDishImage = async (req: Request, res: Response) => {
       });
     }
     
-    return res.json({
-      success: true,
-      data: {
-        imageUrl: imageUrl,
-        prompt: prompt,
-        timestamp: new Date().toISOString()
-      }
-    });
+    try {
+      // Download the image from the temporary URL and save it locally
+      const localImagePath = await downloadImageFromUrl(imageUrl);
+      
+      return res.json({
+        success: true,
+        data: {
+          imageUrl: localImagePath, // Return the local path instead of the temporary URL
+          originalUrl: imageUrl, // Include the original URL for reference if needed
+          prompt: prompt,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (downloadError: any) {
+      console.error('Error downloading image:', downloadError);
+      
+      // If downloading fails, still return the original URL as a fallback
+      return res.json({
+        success: true,
+        data: {
+          imageUrl: imageUrl,
+          prompt: prompt,
+          timestamp: new Date().toISOString(),
+          warning: 'Failed to save image locally. This URL is temporary and may expire soon.'
+        }
+      });
+    }
   } catch (error: any) {
     console.error('Error in AI generate dish image endpoint:', error);
     return res.status(500).json({ 
