@@ -43,9 +43,11 @@ export const upload = multer({
   }
 });
 
-// Get the relative path for storing in the database
+// Get the path for storing in the database and accessing from frontend
 export const getImagePath = (filename: string): string => {
-  return `/uploads/${filename}`;
+  // By default, use the full URL for better frontend compatibility
+  const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
+  return `${serverUrl}/uploads/${filename}`;
 };
 
 /**
@@ -81,8 +83,9 @@ export const downloadImageFromUrl = (imageUrl: string): Promise<string> => {
       // Handle completion of the download
       fileStream.on('finish', () => {
         fileStream.close();
-        // Return the relative path to the image
-        resolve(getImagePath(filename));
+        // Always use the full URL for AI-generated images
+        const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
+        resolve(`${serverUrl}/uploads/${filename}`);
       });
     });
     

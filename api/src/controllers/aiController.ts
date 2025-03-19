@@ -187,10 +187,11 @@ export const generateDishImage = async (req: Request, res: Response) => {
       console.error('Error downloading image:', downloadError);
       
       // If downloading fails, still return the original URL as a fallback
+      // But add a warning that this URL is temporary
       return res.json({
         success: true,
         data: {
-          imageUrl: imageUrl,
+          imageUrl: imageUrl, // Use the original temporary URL
           prompt: prompt,
           timestamp: new Date().toISOString(),
           warning: 'Failed to save image locally. This URL is temporary and may expire soon.'
