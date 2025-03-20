@@ -1,0 +1,47 @@
+{
+  "createProduct": {
+    "title": "יצירת מוצר חדש",
+    "aiCreation": "יצירה עם בינה מלאכותית",
+    "category": "קטגוריה",
+    "aiInstructions": "הוראות לבינה מלאכותית",
+    "aiPlaceholder": "לדוגמה: צור המבורגר גורמה עם רוטב מיוחד, צור קוקטייל קיץ מרענן...",
+    "createWithAi": "צור עם בינה מלאכותית",
+    "creating": "יוצר...",
+    "productName": "שם המוצר",
+    "description": "תיאור",
+    "price": "מחיר (₪)",
+    "suggestPrice": "הצע מחיר",
+    "dishImage": "תמונת המנה",
+    "noImage": "לא נבחרה תמונה",
+    "imageUrl": "הזן כתובת URL לתמונה",
+    "generateImage": "צור תמונה",
+    "imageHelp": "צור תמונת בינה מלאכותית על סמך שם המנה והתיאור, או הזן כתובת URL באופן ידני",
+    "cancel": "ביטול",
+    "save": "שמור"
+  },
+  "editProduct": {
+    "title": "עריכת מוצר",
+    "productName": "שם המוצר",
+    "description": "תיאור",
+    "category": "קטגוריה",
+    "price": "מחיר (₪)",
+    "recalculate": "חשב מחדש",
+    "suggestedPrice": "על סמך המרכיבים והקטגוריה, מחיר מוצע יהיה:",
+    "dishImage": "תמונת המנה",
+    "noImage": "לא נבחרה תמונה",
+    "imageUrl": "הזן כתובת URL לתמונה",
+    "generateImage": "צור תמונה",
+    "imageHelp": "צור תמונת בינה מלאכותית על סמך שם המנה והתיאור",
+    "aiEnhancement": "שיפור עם בינה מלאכותית",
+    "aiInstructions": "הוראות לבינה מלאכותית",
+    "aiPlaceholder": "לדוגמה: הפוך את השם למושך יותר, שפר את התיאור, הגדל את המחיר ב-10%...",
+    "enhanceWithAi": "שפר עם בינה מלאכותית",
+    "enhancing": "משפר...",
+    "cancel": "ביטול",
+    "saveChanges": "שמור שינויים"
+  },
+  "language": {
+    "en": "אנגלית",
+    "he": "עברית"
+  }
+}

@@ -1,4 +1,5 @@
 import { IMenuItem } from "../types/MenuItem";
+import { translateText as translateTextService } from "./localizationService";
 
 interface AiModifyResponse {
   success: boolean;
@@ -75,4 +76,17 @@ export const generateDishImage = async (
   }
 
   return await response.json();
+};
+
+/**
+ * Translates text using AI
+ * @param text - The text to translate
+ * @param targetLanguage - The target language code ('en' or 'he')
+ * @returns The translated text
+ */
+export const translateText = async (
+  text: string,
+  targetLanguage: 'en' | 'he'
+): Promise<string> => {
+  return await translateTextService(text, targetLanguage);
 };

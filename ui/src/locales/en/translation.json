@@ -1,0 +1,47 @@
+{
+  "createProduct": {
+    "title": "Create New Product",
+    "aiCreation": "AI Creation",
+    "category": "Category",
+    "aiInstructions": "Instructions for AI",
+    "aiPlaceholder": "E.g., Create a gourmet burger with special sauce, Create a refreshing summer cocktail...",
+    "createWithAi": "Create with AI",
+    "creating": "Creating...",
+    "productName": "Product Name",
+    "description": "Description",
+    "price": "Price ($)",
+    "suggestPrice": "Suggest Price",
+    "dishImage": "Dish Image",
+    "noImage": "No image selected",
+    "imageUrl": "Enter image URL",
+    "generateImage": "Generate Image",
+    "imageHelp": "Generate an AI image based on the dish name and description, or enter a URL manually",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "editProduct": {
+    "title": "Edit Product",
+    "productName": "Product Name",
+    "description": "Description",
+    "category": "Category",
+    "price": "Price ($)",
+    "recalculate": "Recalculate",
+    "suggestedPrice": "Based on ingredients and category, a suggested price would be:",
+    "dishImage": "Dish Image",
+    "noImage": "No image selected",
+    "imageUrl": "Enter image URL",
+    "generateImage": "Generate Image",
+    "imageHelp": "Generate an AI image based on the dish name and description",
+    "aiEnhancement": "AI Enhancement",
+    "aiInstructions": "Instructions for AI",
+    "aiPlaceholder": "E.g., Make the name more appealing, improve the description, increase the price by 10%...",
+    "enhanceWithAi": "Enhance with AI",
+    "enhancing": "Enhancing...",
+    "cancel": "Cancel",
+    "saveChanges": "Save Changes"
+  },
+  "language": {
+    "en": "English",
+    "he": "Hebrew"
+  }
+}

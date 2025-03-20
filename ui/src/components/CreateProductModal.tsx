@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { IMenuItem } from "../types/MenuItem";
 import { Category } from "./CategoryFilter";
 import { calculateRealisticPrice } from "../utils/priceCalculator";
-import { enhanceProductWithAi, generateDishImage } from "../services/aiService";
+import { enhanceProductWithAi, generateDishImage, translateText } from "../services/aiService";
+import { useLocalization } from "../context/LocalizationContext";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 interface CreateProductModalProps {
   categories: Category[];
@@ -15,6 +17,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { t, language } = useLocalization();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -35,6 +38,12 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setIsAiLoading(true);
     
     try {
+      // Translate instructions to English if needed for better AI processing
+      let processedInstructions = aiInstructions;
+      if (language === 'he') {
+        processedInstructions = await translateText(aiInstructions, 'en');
+      }
+      
       // Create a basic product template with the selected category
       const productTemplate = {
         name: name || `New ${category} Item`,
@@ -42,12 +51,18 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         price: parseFloat(price) || calculateRealisticPrice(category, description, name),
       };
 
-      const response = await enhanceProductWithAi(productTemplate, aiInstructions);
+      const response = await enhanceProductWithAi(productTemplate, processedInstructions);
       
       if (response.success && response.data.updated) {
         // Update form fields with AI-generated content
-        const updatedName = response.data.updated.name;
-        const updatedDescription = response.data.updated.description;
+        let updatedName = response.data.updated.name;
+        let updatedDescription = response.data.updated.description;
+        
+        // Translate back to Hebrew if needed
+        if (language === 'he') {
+          updatedName = await translateText(updatedName, 'he');
+          updatedDescription = await translateText(updatedDescription, 'he');
+        }
         
         setName(updatedName);
         setDescription(updatedDescription);
@@ -75,7 +90,18 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setIsImageLoading(true);
     
     try {
-      const response = await generateDishImage(name, description, category);
+      // For image generation, always use English for better results
+      let nameForImage = name;
+      let descriptionForImage = description;
+      
+      if (language === 'he') {
+        nameForImage = await translateText(name, 'en');
+        if (description) {
+          descriptionForImage = await translateText(description, 'en');
+        }
+      }
+      
+      const response = await generateDishImage(nameForImage, descriptionForImage, category);
       
       if (response.success && response.data.imageUrl) {
         setImage(response.data.imageUrl);
@@ -128,7 +154,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-96 shadow-xl max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">Create New Product</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">{t('createProduct.title')}</h3>
+          <LanguageSwitcher compact />
+        </div>
         
         {/* AI Creation Section */}
         <div className="mb-6">
@@ -136,12 +165,12 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
             </svg>
-            <h4 className="text-md font-medium text-gray-800">AI Creation</h4>
+            <h4 className="text-md font-medium text-gray-800">{t('createProduct.aiCreation')}</h4>
           </div>
           
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-medium mb-2">
-              Category <span className="text-red-500">*</span>
+              {t('createProduct.category')} <span className="text-red-500">*</span>
             </label>
             <select
               value={category}
@@ -158,13 +187,16 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           </div>
           
           <div className="mb-3">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Instructions for AI
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-gray-700 text-sm font-medium">
+                {t('createProduct.aiInstructions')}
+              </label>
+              <LanguageSwitcher className="ml-2" compact />
+            </div>
             <textarea
               value={aiInstructions}
               onChange={(e) => setAiInstructions(e.target.value)}
-              placeholder="E.g., Create a gourmet burger with special sauce, Create a refreshing summer cocktail..."
+              placeholder={t('createProduct.aiPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               rows={2}
             />
@@ -185,14 +217,14 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Creating...
+                {t('createProduct.creating')}
               </>
             ) : (
               <>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Create with AI
+                {t('createProduct.createWithAi')}
               </>
             )}
           </button>
@@ -202,7 +234,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           <>
             <div className="border-t border-gray-200 pt-6 mb-4">
               <label className="block text-gray-700 text-sm font-medium mb-2">
-                Product Name <span className="text-red-500">*</span>
+                {t('createProduct.productName')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -215,7 +247,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-medium mb-2">
-                Description
+                {t('createProduct.description')}
               </label>
               <textarea
                 value={description}
@@ -228,7 +260,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-medium mb-2">
-                Price ($) <span className="text-red-500">*</span>
+                {t('createProduct.price')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -253,7 +285,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
                     type="button"
                   >
-                    Suggest Price
+                    {t('createProduct.suggestPrice')}
                   </button>
                 )}
               </div>
@@ -266,7 +298,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-medium mb-2">
-                Dish Image
+                {t('createProduct.dishImage')}
               </label>
               
               {image ? (
@@ -277,7 +309,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 </div>
               ) : (
                 <div className="mb-3 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50 text-center">
-                  <p className="text-sm text-gray-500">No image selected</p>
+                  <p className="text-sm text-gray-500">{t('createProduct.noImage')}</p>
                 </div>
               )}
               
@@ -286,7 +318,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   type="text"
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  placeholder="Enter image URL"
+                  placeholder={t('createProduct.imageUrl')}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                 />
                 <button
@@ -304,12 +336,12 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   ) : (
-                    "Generate Image"
+                    t('createProduct.generateImage')
                   )}
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Generate an AI image based on the dish name and description, or enter a URL manually
+                {t('createProduct.imageHelp')}
               </p>
             </div>
           </>
@@ -320,7 +352,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             onClick={onCancel}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
           >
-            Cancel
+            {t('createProduct.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -331,7 +363,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 : "bg-green-500 text-white hover:bg-green-600"
             } rounded-md`}
           >
-            Save
+            {t('createProduct.save')}
           </button>
         </div>
       </div>
