@@ -117,7 +117,14 @@ export const getModels = async (_req: Request, res: Response) => {
  */
 export const generateDishImage = async (req: Request, res: Response) => {
   try {
-    const { name, description, category } = req.body;
+    const { 
+      name, 
+      description, 
+      category,
+      imageWidth = 512,    // Default width if not specified
+      imageHeight = 512,   // Default height if not specified
+      imageQuality = 80    // Default quality if not specified
+    } = req.body;
     
     // Validate request body
     if (!name) {
@@ -171,8 +178,12 @@ export const generateDishImage = async (req: Request, res: Response) => {
     }
     
     try {
-      // Download the image from the temporary URL and save it locally
-      const localImagePath = await downloadImageFromUrl(imageUrl);
+      // Download the image from the temporary URL, resize it, and save it locally
+      const localImagePath = await downloadImageFromUrl(imageUrl, {
+        width: imageWidth,     // Use the width from request or default
+        height: imageHeight,   // Use the height from request or default
+        quality: imageQuality  // Use the quality from request or default
+      });
       
       return res.json({
         success: true,

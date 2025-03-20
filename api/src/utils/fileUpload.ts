@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import https from 'https';
 import http from 'http';
+import sharp from 'sharp';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../..', 'uploads');
@@ -51,20 +52,32 @@ export const getImagePath = (filename: string): string => {
 };
 
 /**
- * Download an image from a URL and save it to the uploads directory
+ * Download an image from a URL, resize it, and save it to the uploads directory
  * @param imageUrl URL of the image to download
+ * @param options Optional configuration for image processing
  * @returns Promise with the relative path to the saved image
  */
-export const downloadImageFromUrl = (imageUrl: string): Promise<string> => {
+export const downloadImageFromUrl = (
+  imageUrl: string, 
+  options: { width?: number; height?: number; quality?: number } = {}
+): Promise<string> => {
   return new Promise((resolve, reject) => {
+    // Set default resize options if not provided
+    const width = options.width || 512;  // Default to 512px width
+    const height = options.height || 512; // Default to 512px height
+    const quality = options.quality || 80; // Default to 80% quality
+    
     // Create a unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = '.png'; // Default extension for AI-generated images
+    const ext = '.jpg'; // Use jpg for better compression
     const filename = `ai-dish-${uniqueSuffix}${ext}`;
     const filePath = path.join(uploadsDir, filename);
     
-    // Create a write stream to save the file
-    const fileStream = fs.createWriteStream(filePath);
+    // Create a temporary path for the downloaded image before processing
+    const tempFilePath = path.join(uploadsDir, `temp-${uniqueSuffix}${ext}`);
+    
+    // Create a write stream to save the temporary file
+    const fileStream = fs.createWriteStream(tempFilePath);
     
     // Determine if we should use http or https based on the URL
     const requestLib = imageUrl.startsWith('https') ? https : http;
@@ -77,29 +90,49 @@ export const downloadImageFromUrl = (imageUrl: string): Promise<string> => {
         return;
       }
       
-      // Pipe the response to the file
+      // Pipe the response to the temporary file
       response.pipe(fileStream);
       
       // Handle completion of the download
-      fileStream.on('finish', () => {
+      fileStream.on('finish', async () => {
         fileStream.close();
-        // Always use the full URL for AI-generated images
-        const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
-        resolve(`${serverUrl}/uploads/${filename}`);
+        
+        try {
+          // Resize the image using Sharp
+          await sharp(tempFilePath)
+            .resize(width, height, {
+              fit: 'cover',
+              position: 'center'
+            })
+            .jpeg({ quality }) // Use JPEG format with specified quality
+            .toFile(filePath);
+          
+          // Delete the temporary file
+          fs.unlink(tempFilePath, () => {});
+          
+          // Always use the full URL for AI-generated images
+          const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
+          resolve(`${serverUrl}/uploads/${filename}`);
+        } catch (err) {
+          // Clean up files if processing fails
+          fs.unlink(tempFilePath, () => {});
+          fs.unlink(filePath, () => {});
+          reject(err);
+        }
       });
     });
     
     // Handle request errors
     request.on('error', (err) => {
       // Clean up the file if it was created
-      fs.unlink(filePath, () => {});
+      fs.unlink(tempFilePath, () => {});
       reject(err);
     });
     
     // Handle file stream errors
     fileStream.on('error', (err) => {
       // Clean up the file if it was created
-      fs.unlink(filePath, () => {});
+      fs.unlink(tempFilePath, () => {});
       reject(err);
     });
   });
