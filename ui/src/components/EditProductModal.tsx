@@ -250,18 +250,11 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
             </div>
           )}
           
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder={t('editProduct.imageUrl')}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
+          <div className="flex justify-center">
             <button
               onClick={handleGenerateDishImage}
               disabled={isImageLoading || !name.trim()}
-              className={`px-3 py-2 rounded-md text-sm ${
+              className={`px-4 py-2 rounded-md text-sm ${
                 isImageLoading || !name.trim()
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-blue-500 text-white hover:bg-blue-600"
