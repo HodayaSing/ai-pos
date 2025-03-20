@@ -28,3 +28,7 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# User-generated content
+uploads/*
+!uploads/.gitkeep
