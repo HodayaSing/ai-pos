@@ -151,11 +151,12 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b flex justify-between items-center mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('editProduct.title')}</h3>
           <LanguageSwitcher compact />
         </div>
+        <div className="px-6 pb-6">
         
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-medium mb-2">
@@ -285,11 +286,10 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           </div>
           
           <div className="mb-3">
-            <div className="flex justify-between items-center mb-2">
+            <div className="mb-2">
               <label className="block text-gray-700 text-sm font-medium">
                 {t('editProduct.aiInstructions')}
               </label>
-              <LanguageSwitcher className="ml-2" compact />
             </div>
             <textarea
               value={aiInstructions}
@@ -341,6 +341,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           >
             {t('editProduct.saveChanges')}
           </button>
+        </div>
         </div>
       </div>
     </div>

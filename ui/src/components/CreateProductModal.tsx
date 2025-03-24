@@ -153,11 +153,12 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b flex justify-between items-center mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('createProduct.title')}</h3>
           <LanguageSwitcher compact />
         </div>
+        <div className="px-6 pb-6">
         
         {/* AI Creation Section */}
         <div className="mb-6">
@@ -358,6 +359,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           >
             {t('createProduct.save')}
           </button>
+        </div>
         </div>
       </div>
     </div>

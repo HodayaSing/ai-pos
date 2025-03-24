@@ -29,11 +29,13 @@ interface LocalizationProviderProps {
 }
 
 export const LocalizationProvider: React.FC<LocalizationProviderProps> = ({ children }) => {
-  // Default to English, but check localStorage for saved preference
-  const [language, setLanguage] = useState<Language>(() => {
-    const savedLang = localStorage.getItem('preferredLanguage');
-    return (savedLang === 'en' || savedLang === 'he') ? savedLang : 'en';
-  });
+  // Always default to English regardless of localStorage preference
+  const [language, setLanguage] = useState<Language>('en');
+  
+  // Clear any previously saved language preference
+  useEffect(() => {
+    localStorage.removeItem('preferredLanguage');
+  }, []);
 
   // Update localStorage when language changes
   useEffect(() => {
