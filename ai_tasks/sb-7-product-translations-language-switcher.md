@@ -374,6 +374,18 @@ The save functionality wasn't including the language information when saving the
 
 **Solution**: We updated the `handleSave` function to include the current language and product key when saving, and modified the `updateMenuItem` function in the useMenu hook to handle updating products by key and language.
 
+#### Challenge 7: "Product not found" Error When Updating Non-existent Translations
+
+When trying to update a product translation for a language that didn't exist yet (e.g., updating Hebrew translation for a product that only had English), the API would return a "Product not found" error instead of creating the translation.
+
+**Solution**: We modified the backend controller (`updateProductByKeyAndLanguage` in `api/src/controllers/productController.ts`) to:
+1. Check if the requested translation exists
+2. If not, find another translation of the same product to use as a base
+3. Automatically create the new translation with the provided data
+4. Return a success message with the newly created translation
+
+This backend enhancement eliminated the need for complex translation-checking logic in the frontend, simplifying the code in `productService.ts`. Now when users try to update/set a product translation from the UI, even if that translation doesn't exist yet, the backend will automatically create it, providing a smoother user experience.
+
 ### Testing
 
 We tested the implementation by:

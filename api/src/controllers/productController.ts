@@ -316,19 +316,70 @@ export const updateProductByKeyAndLanguage = async (req: Request, res: Response)
       delete productData.language;
     }
     
-    const product = await ProductModel.updateProductByKeyAndLanguage(productKey, language, productData);
+    // Check if the product with the given product_key and language exists
+    let product = await ProductModel.getProductByKeyAndLanguage(productKey, language);
     
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Product not found' 
+      console.log(`Product with key ${productKey} and language ${language} not found. Checking for base product...`);
+      
+      // If the product doesn't exist, try to find a product with the same product_key but a different language
+      const translations = await ProductModel.getProductTranslations(productKey);
+      
+      if (translations.length > 0) {
+        // Use the first translation as a base
+        const baseProduct = translations[0];
+        
+        console.log(`Creating new translation for ${productKey} in language ${language} based on ${baseProduct.language} translation`);
+        
+        // Create a new product with the base product's data and the provided updates
+        const newProductData: Omit<Product, 'id'> = {
+          product_key: productKey,
+          language: language,
+          name: productData.name || baseProduct.name,
+          description: productData.description || baseProduct.description || '',
+          category: productData.category || baseProduct.category,
+          price: productData.price !== undefined ? productData.price : baseProduct.price,
+          image: productData.image || baseProduct.image
+        };
+        
+        try {
+          // Create the new translation
+          product = await ProductModel.createProduct(newProductData);
+          
+          return res.status(201).json({
+            success: true,
+            data: product,
+            message: 'Translation created successfully'
+          });
+        } catch (createError: any) {
+          console.error('Error creating translation:', createError);
+          return res.status(500).json({ 
+            success: false, 
+            error: createError.message || 'Failed to create translation' 
+          });
+        }
+      } else {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'No base product found to create translation' 
+        });
+      }
+    } else {
+      // If the product exists, update it
+      product = await ProductModel.updateProductByKeyAndLanguage(productKey, language, productData);
+      
+      if (!product) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Failed to update product' 
+        });
+      }
+      
+      return res.json({
+        success: true,
+        data: product
       });
     }
-    
-    return res.json({
-      success: true,
-      data: product
-    });
   } catch (error: any) {
     console.error('Error updating product:', error);
     return res.status(500).json({ 
