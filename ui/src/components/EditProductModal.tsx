@@ -71,6 +71,8 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
         setImage(translatedProduct.image);
       }
     }
+    // If we don't have translations for this language, keep the current values
+    // This allows the user to create a new translation manually
   };
 
   // Handle AI enhancement
@@ -189,7 +191,9 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       description,
       category,
       price: finalPrice,
-      image: image || item.image
+      image: image || item.image,
+      language: currentLanguage, // Include the currently selected language
+      product_key: item.product_key // Ensure product_key is included
     });
   };
 
@@ -198,7 +202,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b flex justify-between items-center mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('editProduct.title')}</h3>
-          <LanguageSwitcher compact onLanguageChange={handleLanguageChange} />
+          <LanguageSwitcher compact onLanguageChange={handleLanguageChange} currentLanguage={currentLanguage} />
         </div>
         <div className="px-6 pb-6">
         

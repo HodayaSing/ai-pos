@@ -124,19 +124,40 @@ export const useMenu = () => {
   // Function to update a menu item
   const updateMenuItem = async (updatedItem: IMenuItem) => {
     try {
-      const updatedProduct = await productService.updateProduct(updatedItem.id, {
-        name: updatedItem.name,
-        description: updatedItem.description,
-        category: updatedItem.category,
-        price: updatedItem.price,
-        image: updatedItem.image
-      });
+      // Check if we're updating a translation (has product_key and language)
+      if (updatedItem.product_key && updatedItem.language) {
+        // Use the updateProductByKeyAndLanguage endpoint
+        const updatedProduct = await productService.updateProductByKeyAndLanguage(
+          updatedItem.product_key,
+          updatedItem.language,
+          {
+            name: updatedItem.name,
+            description: updatedItem.description,
+            category: updatedItem.category,
+            price: updatedItem.price,
+            image: updatedItem.image
+          }
+        );
+      } else {
+        // Use the regular updateProduct endpoint
+        const updatedProduct = await productService.updateProduct(updatedItem.id, {
+          name: updatedItem.name,
+          description: updatedItem.description,
+          category: updatedItem.category,
+          price: updatedItem.price,
+          image: updatedItem.image
+        });
+      }
       
+      // Update the menu items in state
       setMenuItems(prev => 
         prev.map(item => 
           item.id === updatedItem.id ? updatedItem : item
         )
       );
+      
+      // Refresh menu items to get any new translations
+      fetchMenuItems();
       
       return true;
     } catch (error) {
