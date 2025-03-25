@@ -1,10 +1,18 @@
 export interface Product {
   id?: number;
+  product_key?: string;
+  language?: string;
   name: string;
   description?: string;
   category: string;
   price: number;
   image?: string;
+}
+
+export interface ProductTranslations {
+  locales: {
+    [key: string]: Product;
+  }
 }
 
 const API_URL = 'http://localhost:3000/api/products';
@@ -175,6 +183,32 @@ export const getProductsByCategory = async (category: string): Promise<Product[]
     return data.data;
   } catch (error) {
     console.error(`Error in getProductsByCategory for category ${category}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get product translations by product key
+ * @param productKey Product key
+ * @returns Promise with product translations
+ */
+export const getProductTranslations = async (productKey: string): Promise<ProductTranslations> => {
+  try {
+    const response = await fetch(`${API_URL}/translations/${encodeURIComponent(productKey)}`);
+    
+    if (!response.ok) {
+      throw new Error(`Error fetching product translations: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch product translations');
+    }
+    
+    return data.data;
+  } catch (error) {
+    console.error(`Error in getProductTranslations for product key ${productKey}:`, error);
     throw error;
   }
 };

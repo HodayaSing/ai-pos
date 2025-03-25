@@ -36,6 +36,8 @@ export const useMenu = () => {
         .filter(product => product.id !== undefined) // Filter out products without an id
         .map(product => ({
           id: product.id as number, // We've filtered out undefined ids
+          product_key: product.product_key,
+          language: product.language,
           name: product.name,
           category: product.category,
           price: product.price,
@@ -100,6 +102,8 @@ export const useMenu = () => {
       if (createdProduct.id) {
         const newMenuItem: IMenuItem = {
           id: createdProduct.id,
+          product_key: createdProduct.product_key,
+          language: createdProduct.language,
           name: createdProduct.name,
           description: createdProduct.description,
           category: createdProduct.category,
