@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import { config } from '../config';
 import { downloadImageFromUrl } from '../utils/fileUpload';
+import * as ProductModel from '../models/productModel';
 
 interface ProductData {
   name: string;
@@ -318,6 +319,217 @@ export const modifyProduct = async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     console.error('Error in AI modify product endpoint:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Server error' 
+    });
+  }
+};
+
+/**
+ * Translate text from one language to another using AI
+ * @param req Express request object
+ * @param res Express response object
+ */
+export const translateText = async (req: Request, res: Response) => {
+  try {
+    const { text, targetLanguage } = req.body;
+    
+    // Validate request body
+    if (!text) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Text to translate is required' 
+      });
+    }
+    
+    if (!targetLanguage || !['en', 'he'].includes(targetLanguage)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Valid target language (en or he) is required' 
+      });
+    }
+
+    if (!config.ai.apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'OpenAI API key is not configured. Please set the AI_API_KEY environment variable.'
+      });
+    }
+    
+    // Create a prompt for the AI to translate the text
+    const prompt = `Translate the following text to ${targetLanguage === 'en' ? 'English' : 'Hebrew'}:
+    
+    "${text}"
+    
+    Only return the translated text, nothing else.`;
+    
+    // Call OpenAI API to generate a translation
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a professional translator. Provide accurate translations between English and Hebrew.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 1000,
+    });
+
+    // Extract the response text
+    const translatedText = completion.choices[0]?.message?.content?.trim() || text;
+    
+    return res.json({
+      success: true,
+      translatedText,
+      sourceLanguage: targetLanguage === 'en' ? 'he' : 'en',
+      targetLanguage
+    });
+  } catch (error: any) {
+    console.error('Error in AI translate endpoint:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Server error' 
+    });
+  }
+};
+
+/**
+ * Generate translations for all products
+ * @param req Express request object
+ * @param res Express response object
+ */
+export const generateProductTranslations = async (req: Request, res: Response) => {
+  try {
+    const { targetLanguage = 'he' } = req.body;
+    
+    if (!['en', 'he'].includes(targetLanguage)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Valid target language (en or he) is required' 
+      });
+    }
+
+    if (!config.ai.apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'OpenAI API key is not configured. Please set the AI_API_KEY environment variable.'
+      });
+    }
+    
+    // Get all products in the source language (opposite of target)
+    const sourceLanguage = targetLanguage === 'he' ? 'en' : 'he';
+    const products = await ProductModel.getProductsByLanguage(sourceLanguage);
+    
+    if (products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `No products found in ${sourceLanguage} language`
+      });
+    }
+    
+    const results = {
+      success: true,
+      total: products.length,
+      translated: 0,
+      failed: 0,
+      details: [] as any[]
+    };
+    
+    // Process each product
+    for (const product of products) {
+      try {
+        // Create a prompt for the AI to translate the product details
+        const prompt = `Translate the following product details from ${sourceLanguage === 'en' ? 'English to Hebrew' : 'Hebrew to English'}:
+        
+        Name: "${product.name}"
+        Description: "${product.description || ''}"
+        
+        Return a JSON object with the translated fields in the following format:
+        {
+          "name": "translated name",
+          "description": "translated description"
+        }
+        
+        Only return the JSON object, nothing else.`;
+        
+        // Call OpenAI API to generate a translation
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are a professional translator specializing in food and restaurant menus. Provide accurate translations between English and Hebrew.' 
+            },
+            { role: 'user', content: prompt }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 1000,
+        });
+
+        // Extract and parse the response
+        const responseText = completion.choices[0]?.message?.content || '{}';
+        const translatedFields = JSON.parse(responseText);
+        
+        // Check if the translation exists for this product_key and language
+        const existingTranslation = await ProductModel.getProductByKeyAndLanguage(
+          product.product_key,
+          targetLanguage
+        );
+        
+        if (existingTranslation) {
+          // Update existing translation
+          await ProductModel.updateProductByKeyAndLanguage(
+            product.product_key,
+            targetLanguage,
+            {
+              name: translatedFields.name,
+              description: translatedFields.description,
+              category: product.category,
+              price: product.price,
+              image: product.image
+            }
+          );
+        } else {
+          // Create new translation
+          await ProductModel.createProduct({
+            product_key: product.product_key,
+            language: targetLanguage,
+            name: translatedFields.name,
+            description: translatedFields.description,
+            category: product.category,
+            price: product.price,
+            image: product.image
+          });
+        }
+        
+        results.translated++;
+        results.details.push({
+          id: product.id,
+          product_key: product.product_key,
+          original: {
+            name: product.name,
+            description: product.description
+          },
+          translated: translatedFields,
+          success: true
+        });
+      } catch (productError: any) {
+        console.error(`Error translating product ${product.id}:`, productError);
+        results.failed++;
+        results.details.push({
+          id: product.id,
+          product_key: product.product_key,
+          error: productError.message,
+          success: false
+        });
+      }
+    }
+    
+    return res.json(results);
+  } catch (error: any) {
+    console.error('Error in generate product translations endpoint:', error);
     return res.status(500).json({ 
       success: false, 
       error: error.message || 'Server error' 

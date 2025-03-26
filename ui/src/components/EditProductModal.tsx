@@ -5,6 +5,7 @@ import { calculateRealisticPrice } from "../utils/priceCalculator";
 import { enhanceProductWithAi, generateDishImage, translateText } from "../services/aiService";
 import { useLocalization } from "../context/LocalizationContext";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import * as productService from "../services/productService";
 
 interface EditProductModalProps {
   item: IMenuItem;
@@ -19,7 +20,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   onSave,
   onCancel,
 }) => {
-  const { t, language } = useLocalization();
+  const { t, language, setLanguage } = useLocalization();
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description || "");
   const [price, setPrice] = useState(item.price.toString());
@@ -28,7 +29,62 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [aiInstructions, setAiInstructions] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [isLoadingTranslations, setIsLoadingTranslations] = useState(false);
+  const [translations, setTranslations] = useState<{[key: string]: any}>({});
+  const [productKey, setProductKey] = useState<string | null>(null);
 
+  // Load product translations when the modal opens
+  useEffect(() => {
+    const loadProductTranslations = async () => {
+      try {
+        setIsLoadingTranslations(true);
+        
+        // First, get the product to find its product_key
+        const product = await productService.getProductById(item.id);
+        
+        if (product && product.product_key) {
+          setProductKey(product.product_key);
+          
+          // Then fetch all translations for this product
+          const productTranslations = await productService.getProductTranslations(product.product_key);
+          setTranslations(productTranslations);
+        }
+      } catch (error) {
+        console.error('Error loading product translations:', error);
+      } finally {
+        setIsLoadingTranslations(false);
+      }
+    };
+    
+    loadProductTranslations();
+  }, [item.id]);
+  
+  // Handle language change within the modal
+  const handleLanguageChange = (lang: 'en' | 'he') => {
+    // If we have translations for this language, update the form fields
+    if (translations && translations[lang]) {
+      const translatedProduct = translations[lang];
+      setName(translatedProduct.name || '');
+      setDescription(translatedProduct.description || '');
+      
+      // Only update price and category if they exist in the translation
+      if (translatedProduct.price) {
+        setPrice(translatedProduct.price.toString());
+      }
+      
+      if (translatedProduct.category) {
+        setCategory(translatedProduct.category);
+      }
+      
+      if (translatedProduct.image) {
+        setImage(translatedProduct.image);
+      }
+    }
+    
+    // Update the UI language
+    setLanguage(lang);
+  };
+  
   // Handle AI enhancement
   const handleAiEnhance = async () => {
     if (!aiInstructions.trim()) return;
@@ -154,23 +210,31 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b flex justify-between items-center mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('editProduct.title')}</h3>
-          <LanguageSwitcher compact />
+          <LanguageSwitcher compact onLanguageChange={handleLanguageChange} />
         </div>
-        <div className="px-6 pb-6">
-        
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-medium mb-2">
-            {t('editProduct.productName')}
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        
-        <div className="mb-4">
+        {isLoadingTranslations ? (
+          <div className="px-6 py-8 flex flex-col items-center justify-center">
+            <svg className="animate-spin h-8 w-8 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-gray-600">{t('editProduct.loadingTranslations')}</p>
+          </div>
+        ) : (
+          <div className="px-6 pb-6">
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                {t('editProduct.productName')}
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="mb-4">
           <label className="block text-gray-700 text-sm font-medium mb-2">
             {t('editProduct.description')}
           </label>
@@ -328,21 +392,22 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           </button>
         </div>
         
-        <div className="flex justify-end space-x-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-          >
-            {t('editProduct.cancel')}
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-          >
-            {t('editProduct.saveChanges')}
-          </button>
-        </div>
-        </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                {t('editProduct.cancel')}
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                {t('editProduct.saveChanges')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 export interface Product {
   id?: number;
+  product_key?: string;
+  language?: string;
   name: string;
   description?: string;
   category: string;
@@ -56,6 +58,32 @@ export const getProductById = async (id: number): Promise<Product> => {
     return data.data;
   } catch (error) {
     console.error(`Error in getProductById for ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get all translations for a product by product key
+ * @param productKey The product's unique key
+ * @returns Promise with product translations
+ */
+export const getProductTranslations = async (productKey: string): Promise<{[key: string]: Product}> => {
+  try {
+    const response = await fetch(`${API_URL}/translations/${productKey}`);
+    
+    if (!response.ok) {
+      throw new Error(`Error fetching product translations: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch product translations');
+    }
+    
+    return data.data.locales;
+  } catch (error) {
+    console.error(`Error in getProductTranslations for key ${productKey}:`, error);
     throw error;
   }
 };
