@@ -166,6 +166,7 @@ export const updateProductByKeyAndLanguage = async (
   product: Partial<Product>
 ): Promise<Product> => {
   try {
+    // Try to update the translation directly
     const response = await fetch(`${API_URL}/key/${productKey}/${language}`, {
       method: 'PUT',
       headers: {
@@ -174,6 +175,49 @@ export const updateProductByKeyAndLanguage = async (
       body: JSON.stringify(product),
     });
     
+    // If the update fails with 404 (Not Found), create the translation
+    if (response.status === 404) {
+      console.log(`Translation for language ${language} doesn't exist. Creating it...`);
+      
+      // Get the base product (usually English) to use as a template
+      const translations = await getProductTranslations(productKey);
+      const baseProduct = translations['en'] || Object.values(translations)[0];
+      
+      if (!baseProduct) {
+        throw new Error('Could not find a base product to use as template for translation');
+      }
+      
+      // Create the new translation
+      const createResponse = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_key: productKey,
+          language: language,
+          name: product.name || baseProduct.name,
+          description: product.description || baseProduct.description,
+          category: product.category || baseProduct.category,
+          price: product.price || baseProduct.price,
+          image: product.image || baseProduct.image
+        }),
+      });
+      
+      if (!createResponse.ok) {
+        throw new Error(`Error creating product translation: ${createResponse.statusText}`);
+      }
+      
+      const createData = await createResponse.json();
+      
+      if (!createData.success) {
+        throw new Error(createData.error || 'Failed to create product translation');
+      }
+      
+      return createData.data;
+    }
+    
+    // If the update was successful, return the updated product
     if (!response.ok) {
       throw new Error(`Error updating product: ${response.statusText}`);
     }

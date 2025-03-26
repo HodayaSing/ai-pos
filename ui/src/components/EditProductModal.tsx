@@ -102,46 +102,19 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       if (translatedProduct.image) {
         setImage(translatedProduct.image);
       }
-    } else if (productKey) {
-      // If we don't have translations for this language, try to fetch them
-      try {
-        setIsLoadingTranslations(true);
-        
-        // Try to get the translation for this language
-        const response = await fetch(`http://localhost:3000/api/products/key/${productKey}/${lang}`);
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          // Update translations
-          setTranslations(prev => ({
-            ...prev,
-            [lang]: data.data
-          }));
-          
-          // Update form fields
-          setName(data.data.name || '');
-          setDescription(data.data.description || '');
-          
-          if (data.data.price) {
-            setPrice(data.data.price.toString());
-          }
-          
-          if (data.data.category) {
-            setCategory(data.data.category);
-          }
-          
-          if (data.data.image) {
-            setImage(data.data.image);
-          }
-        } else {
-          // If no translation exists, keep the current fields but mark as editing in new language
-          console.log(`No translation found for language: ${lang}`);
-        }
-      } catch (error) {
-        console.error(`Error fetching translation for language ${lang}:`, error);
-      } finally {
-        setIsLoadingTranslations(false);
-      }
+    } else {
+      // If we don't have translations for this language, use the base product (English)
+      // or create a new translation when saving
+      const baseProduct = translations['en'] || item;
+      
+      // Use the base product data as a starting point for the new translation
+      setName(baseProduct.name || '');
+      setDescription(baseProduct.description || '');
+      setPrice(baseProduct.price?.toString() || '0');
+      setCategory(baseProduct.category || '');
+      setImage(baseProduct.image || '');
+      
+      console.log(`Starting new translation for language: ${lang}`);
     }
     
     // Don't update the UI language - only change the product's language
@@ -284,12 +257,22 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
         );
         
         console.log(`Saved translation for language: ${currentEditingLanguage}`);
+        
+        // Only update the main product (by ID) if we're editing the default language (English)
+        // This prevents duplicate updates and ensures translations remain separate
+        if (currentEditingLanguage === 'en') {
+          onSave(updatedItem);
+        } else {
+          // For non-default languages, just close the modal without updating the main product
+          onSave(item); // Pass the original item to avoid updating the main product
+        }
       } catch (error) {
         console.error(`Error saving translation for language ${currentEditingLanguage}:`, error);
       }
+    } else {
+      // If no product key (unlikely), fall back to the original behavior
+      onSave(updatedItem);
     }
-    
-    onSave(updatedItem);
   };
 
   return (
