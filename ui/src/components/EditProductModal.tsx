@@ -144,8 +144,8 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       }
     }
     
-    // Update the UI language
-    setLanguage(lang);
+    // Don't update the UI language - only change the product's language
+    // setLanguage(lang); - Removed to prevent changing the app-wide language
   };
   
   // Handle AI enhancement
@@ -301,6 +301,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
             compact 
             onLanguageChange={handleLanguageChange} 
             activeLanguage={currentEditingLanguage}
+            isProductLanguage={true}
           />
         </div>
         {isLoadingTranslations ? (

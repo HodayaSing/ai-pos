@@ -1,4 +1,5 @@
 {
+  "product": "Product",
   "createProduct": {
     "title": "Create New Product",
     "aiCreation": "AI Creation",

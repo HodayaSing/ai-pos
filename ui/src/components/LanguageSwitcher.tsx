@@ -6,13 +6,15 @@ interface LanguageSwitcherProps {
   compact?: boolean;
   onLanguageChange?: (lang: 'en' | 'he') => void;
   activeLanguage?: 'en' | 'he'; // Allow overriding the active language display
+  isProductLanguage?: boolean; // Indicates if this switcher is for product language only
 }
 
 export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ 
   className = '', 
   compact = false,
   onLanguageChange,
-  activeLanguage
+  activeLanguage,
+  isProductLanguage = false
 }) => {
   const { language, t, setLanguage } = useLocalization();
   const [isLoading, setIsLoading] = useState<'en' | 'he' | null>(null);
@@ -45,7 +47,13 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
     <div className={`flex items-center ${className}`}>
       {!compact && (
         <span className="text-xs text-gray-500 mr-2">
+          {isProductLanguage ? `${t('product')} ` : ''}
           {t('language.en')}/{t('language.he')}:
+        </span>
+      )}
+      {compact && isProductLanguage && (
+        <span className="text-xs text-gray-500 mr-2">
+          {t('product')}:
         </span>
       )}
       <div className="flex rounded-md overflow-hidden border border-gray-300">

@@ -1,4 +1,5 @@
 {
+  "product": "מוצר",
   "createProduct": {
     "title": "יצירת מוצר חדש",
     "aiCreation": "יצירה עם בינה מלאכותית",
