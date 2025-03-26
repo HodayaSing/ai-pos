@@ -4,7 +4,6 @@ import { Category } from "./CategoryFilter";
 import { calculateRealisticPrice } from "../utils/priceCalculator";
 import { enhanceProductWithAi, generateDishImage, translateText } from "../services/aiService";
 import { useLocalization } from "../context/LocalizationContext";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 
 interface CreateProductModalProps {
   categories: Category[];
@@ -154,9 +153,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b flex justify-between items-center mb-4 shadow-sm">
+        <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('createProduct.title')}</h3>
-          <LanguageSwitcher compact />
         </div>
         <div className="px-6 pb-6">
         
@@ -188,11 +186,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           </div>
           
           <div className="mb-3">
-            <div className="flex justify-between items-center mb-2">
+            <div className="mb-2">
               <label className="block text-gray-700 text-sm font-medium">
                 {t('createProduct.aiInstructions')}
               </label>
-              <LanguageSwitcher className="ml-2" compact />
             </div>
             <textarea
               value={aiInstructions}

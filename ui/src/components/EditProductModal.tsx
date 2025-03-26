@@ -30,6 +30,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [isLoadingTranslations, setIsLoadingTranslations] = useState(false);
+  const [isAutoTranslating, setIsAutoTranslating] = useState(false);
   const [translations, setTranslations] = useState<{[key: string]: any}>({});
   const [productKey, setProductKey] = useState<string | null>(null);
   const [currentEditingLanguage, setCurrentEditingLanguage] = useState<'en' | 'he'>(language);
@@ -104,7 +105,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       }
     } else {
       // If we don't have translations for this language, use the base product (English)
-      // or create a new translation when saving
+      // as a starting point and then auto-translate
       const baseProduct = translations['en'] || item;
       
       // Use the base product data as a starting point for the new translation
@@ -115,10 +116,60 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       setImage(baseProduct.image || '');
       
       console.log(`Starting new translation for language: ${lang}`);
+      
+      // Automatically trigger AI translation
+      if (baseProduct.name) {
+        setIsAutoTranslating(true);
+        
+        try {
+          // Set AI instructions to translate to the target language
+          const translationInstruction = `translate to ${lang}`;
+          setAiInstructions(translationInstruction);
+          
+          // Trigger the AI enhancement with translation instruction
+          await handleAutoTranslation(translationInstruction, lang, baseProduct);
+        } catch (error) {
+          console.error('Error auto-translating product:', error);
+        } finally {
+          setIsAutoTranslating(false);
+        }
+      }
     }
     
     // Don't update the UI language - only change the product's language
     // setLanguage(lang); - Removed to prevent changing the app-wide language
+  };
+  
+  // Handle automatic translation
+  const handleAutoTranslation = async (instruction: string, targetLang: 'en' | 'he', baseProduct: any) => {
+    setIsAiLoading(true);
+    
+    try {
+      // Call the AI enhancement with the translation instruction
+      const response = await enhanceProductWithAi(
+        {
+          name: baseProduct.name,
+          description: baseProduct.description || '',
+          price: parseFloat(baseProduct.price?.toString() || '0'),
+        },
+        instruction
+      );
+      
+      if (response.success && response.data.updated) {
+        // Update form fields with translated content
+        setName(response.data.updated.name);
+        setDescription(response.data.updated.description);
+        
+        // Keep the same price and category as the original
+        // We don't want to change these values during translation
+      }
+    } catch (error) {
+      console.error('Error in auto-translation:', error);
+    } finally {
+      setIsAiLoading(false);
+      // Clear the AI instructions after translation is complete
+      setAiInstructions('');
+    }
   };
   
   // Handle AI enhancement
@@ -294,6 +345,14 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             <p className="text-gray-600">{t('editProduct.loadingTranslations')}</p>
+          </div>
+        ) : isAutoTranslating ? (
+          <div className="px-6 py-8 flex flex-col items-center justify-center">
+            <svg className="animate-spin h-8 w-8 text-purple-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-gray-600">{t('editProduct.autoTranslating')} {t(`language.${currentEditingLanguage}`)}</p>
           </div>
         ) : (
           <div className="px-6 pb-6">
