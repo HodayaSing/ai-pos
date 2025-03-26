@@ -140,7 +140,9 @@
     "which-typed-array": "^1.1.19"
   },
   "scripts": {
-    "dev": "concurrently \"cd ui && npm run dev\" \"cd api && npm run dev\"",
+    "dev": "npm-run-all --parallel dev:ui dev:api",
+    "dev:ui": "cd ui && npm run dev",
+    "dev:api": "cd api && npm run dev",
     "dev-host": "concurrently \"cd ui && npm run dev-host\" \"cd api && npm run dev\"",
     "install-all": "npm install && cd ui && npm install && cd ../api && npm install",
     "start": "node index.js",
