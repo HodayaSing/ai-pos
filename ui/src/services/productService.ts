@@ -154,6 +154,44 @@ export const updateProduct = async (id: number, product: Partial<Product>): Prom
 };
 
 /**
+ * Update a product by product_key and language
+ * @param productKey The product's unique key
+ * @param language The language code ('en' or 'he')
+ * @param product Updated product data
+ * @returns Promise with updated product
+ */
+export const updateProductByKeyAndLanguage = async (
+  productKey: string, 
+  language: string, 
+  product: Partial<Product>
+): Promise<Product> => {
+  try {
+    const response = await fetch(`${API_URL}/key/${productKey}/${language}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(product),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Error updating product: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to update product');
+    }
+    
+    return data.data;
+  } catch (error) {
+    console.error(`Error in updateProductByKeyAndLanguage for key ${productKey} and language ${language}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Delete a product
  * @param id Product ID
  * @returns Promise with success status

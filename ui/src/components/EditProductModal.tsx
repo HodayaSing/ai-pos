@@ -32,6 +32,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [isLoadingTranslations, setIsLoadingTranslations] = useState(false);
   const [translations, setTranslations] = useState<{[key: string]: any}>({});
   const [productKey, setProductKey] = useState<string | null>(null);
+  const [currentEditingLanguage, setCurrentEditingLanguage] = useState<'en' | 'he'>(language);
 
   // Load product translations when the modal opens
   useEffect(() => {
@@ -48,6 +49,26 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           // Then fetch all translations for this product
           const productTranslations = await productService.getProductTranslations(product.product_key);
           setTranslations(productTranslations);
+          
+          // If we have a translation for the current language, use it
+          if (productTranslations && productTranslations[language]) {
+            const translatedProduct = productTranslations[language];
+            setName(translatedProduct.name || '');
+            setDescription(translatedProduct.description || '');
+            
+            // Only update price and category if they exist in the translation
+            if (translatedProduct.price) {
+              setPrice(translatedProduct.price.toString());
+            }
+            
+            if (translatedProduct.category) {
+              setCategory(translatedProduct.category);
+            }
+            
+            if (translatedProduct.image) {
+              setImage(translatedProduct.image);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading product translations:', error);
@@ -57,10 +78,12 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
     };
     
     loadProductTranslations();
-  }, [item.id]);
+  }, [item.id, language]);
   
   // Handle language change within the modal
-  const handleLanguageChange = (lang: 'en' | 'he') => {
+  const handleLanguageChange = async (lang: 'en' | 'he') => {
+    setCurrentEditingLanguage(lang);
+    
     // If we have translations for this language, update the form fields
     if (translations && translations[lang]) {
       const translatedProduct = translations[lang];
@@ -78,6 +101,46 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       
       if (translatedProduct.image) {
         setImage(translatedProduct.image);
+      }
+    } else if (productKey) {
+      // If we don't have translations for this language, try to fetch them
+      try {
+        setIsLoadingTranslations(true);
+        
+        // Try to get the translation for this language
+        const response = await fetch(`http://localhost:3000/api/products/key/${productKey}/${lang}`);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          // Update translations
+          setTranslations(prev => ({
+            ...prev,
+            [lang]: data.data
+          }));
+          
+          // Update form fields
+          setName(data.data.name || '');
+          setDescription(data.data.description || '');
+          
+          if (data.data.price) {
+            setPrice(data.data.price.toString());
+          }
+          
+          if (data.data.category) {
+            setCategory(data.data.category);
+          }
+          
+          if (data.data.image) {
+            setImage(data.data.image);
+          }
+        } else {
+          // If no translation exists, keep the current fields but mark as editing in new language
+          console.log(`No translation found for language: ${lang}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching translation for language ${lang}:`, error);
+      } finally {
+        setIsLoadingTranslations(false);
       }
     }
     
@@ -188,21 +251,45 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   };
 
   // Handle save
-  const handleSave = () => {
+  const handleSave = async () => {
     let finalPrice = parseFloat(price);
     
     if (isNaN(finalPrice) || finalPrice <= 0) {
       finalPrice = calculateRealisticPrice(category, description, name);
     }
     
-    onSave({
+    const updatedItem = {
       ...item,
       name,
       description,
       category,
       price: finalPrice,
       image: image || item.image
-    });
+    };
+    
+    // If we have a product key and we're editing in a specific language
+    if (productKey) {
+      try {
+        // Save the translation for the current editing language
+        await productService.updateProductByKeyAndLanguage(
+          productKey,
+          currentEditingLanguage,
+          {
+            name,
+            description,
+            category,
+            price: finalPrice,
+            image: image || item.image
+          }
+        );
+        
+        console.log(`Saved translation for language: ${currentEditingLanguage}`);
+      } catch (error) {
+        console.error(`Error saving translation for language ${currentEditingLanguage}:`, error);
+      }
+    }
+    
+    onSave(updatedItem);
   };
 
   return (
@@ -210,7 +297,11 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b flex justify-between items-center mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('editProduct.title')}</h3>
-          <LanguageSwitcher compact onLanguageChange={handleLanguageChange} />
+          <LanguageSwitcher 
+            compact 
+            onLanguageChange={handleLanguageChange} 
+            activeLanguage={currentEditingLanguage}
+          />
         </div>
         {isLoadingTranslations ? (
           <div className="px-6 py-8 flex flex-col items-center justify-center">
