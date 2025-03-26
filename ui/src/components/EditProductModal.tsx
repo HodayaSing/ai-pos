@@ -5,6 +5,7 @@ import { calculateRealisticPrice } from "../utils/priceCalculator";
 import { enhanceProductWithAi, generateDishImage, translateText } from "../services/aiService";
 import { useLocalization } from "../context/LocalizationContext";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { getProductTranslations, ProductTranslations } from "../services/productService";
 
 interface EditProductModalProps {
   item: IMenuItem;
@@ -19,7 +20,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   onSave,
   onCancel,
 }) => {
-  const { t, language } = useLocalization();
+  const { t, language, setLanguage } = useLocalization();
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description || "");
   const [price, setPrice] = useState(item.price.toString());
@@ -28,6 +29,51 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [aiInstructions, setAiInstructions] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [translations, setTranslations] = useState<ProductTranslations | null>(null);
+  const [isLoadingTranslations, setIsLoadingTranslations] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'he'>(language);
+  
+  // Load product translations when the modal opens
+  useEffect(() => {
+    const fetchTranslations = async () => {
+      if (!item.product_key) {
+        console.warn('No product_key available for translations');
+        return;
+      }
+      
+      setIsLoadingTranslations(true);
+      try {
+        const translationsData = await getProductTranslations(item.product_key);
+        setTranslations(translationsData);
+        console.log('Loaded translations:', translationsData);
+      } catch (error) {
+        console.error('Error loading product translations:', error);
+      } finally {
+        setIsLoadingTranslations(false);
+      }
+    };
+    
+    fetchTranslations();
+  }, [item.product_key]);
+  
+  // Handle language change
+  const handleLanguageChange = (lang: 'en' | 'he') => {
+    setCurrentLanguage(lang);
+    
+    // If we have translations, update the form fields
+    if (translations && translations.locales && translations.locales[lang]) {
+      const translatedProduct = translations.locales[lang];
+      setName(translatedProduct.name);
+      setDescription(translatedProduct.description || "");
+      setPrice(translatedProduct.price.toString());
+      setCategory(translatedProduct.category);
+      if (translatedProduct.image) {
+        setImage(translatedProduct.image);
+      }
+    }
+    // If we don't have translations for this language, keep the current values
+    // This allows the user to create a new translation manually
+  };
 
   // Handle AI enhancement
   const handleAiEnhance = async () => {
@@ -145,7 +191,9 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       description,
       category,
       price: finalPrice,
-      image: image || item.image
+      image: image || item.image,
+      language: currentLanguage, // Include the currently selected language
+      product_key: item.product_key // Ensure product_key is included
     });
   };
 
@@ -154,7 +202,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
       <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b flex justify-between items-center mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('editProduct.title')}</h3>
-          <LanguageSwitcher compact />
+          <LanguageSwitcher compact onLanguageChange={handleLanguageChange} currentLanguage={currentLanguage} />
         </div>
         <div className="px-6 pb-6">
         

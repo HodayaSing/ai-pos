@@ -1,24 +1,35 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocalization } from '../context/LocalizationContext';
 
 interface LanguageSwitcherProps {
   className?: string;
   compact?: boolean;
+  onLanguageChange?: (lang: 'en' | 'he') => void;
+  currentLanguage?: 'en' | 'he';
 }
 
 export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ 
   className = '', 
-  compact = false 
+  compact = false,
+  onLanguageChange,
+  currentLanguage
 }) => {
-  const { language, t } = useLocalization();
-  // Local state to track selected language in the UI without changing app language
-  const [selectedLang, setSelectedLang] = useState<'en' | 'he'>(language);
+  const { language, t, setLanguage } = useLocalization();
+  
+  // Use currentLanguage prop if provided, otherwise use the global language
+  const activeLanguage = currentLanguage || language;
 
-  // Handle language selection without changing app localization
+  // Handle language selection
   const handleLanguageSelect = (lang: 'en' | 'he') => {
     console.log(`Language selected: ${lang}`);
-    setSelectedLang(lang);
-    // No longer calling setLanguage to prevent app-wide localization
+    
+    // If onLanguageChange prop is provided, call it
+    if (onLanguageChange) {
+      onLanguageChange(lang);
+    } else {
+      // Otherwise, use the global language setting
+      setLanguage(lang);
+    }
   };
 
   return (
@@ -32,7 +43,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         <button
           onClick={() => handleLanguageSelect('en')}
           className={`px-2 py-1 text-xs font-medium transition-colors ${
-            selectedLang === 'en'
+            activeLanguage === 'en'
               ? 'bg-blue-500 text-white'
               : 'bg-white text-gray-700 hover:bg-gray-100'
           }`}
@@ -43,7 +54,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         <button
           onClick={() => handleLanguageSelect('he')}
           className={`px-2 py-1 text-xs font-medium transition-colors ${
-            selectedLang === 'he'
+            activeLanguage === 'he'
               ? 'bg-blue-500 text-white'
               : 'bg-white text-gray-700 hover:bg-gray-100'
           }`}

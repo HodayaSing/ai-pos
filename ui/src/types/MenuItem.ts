@@ -1,5 +1,7 @@
 export interface IMenuItem {
   id: number;
+  product_key?: string;
+  language?: string;
   name: string;
   category: string;
   price: number;
