@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { IMenuItem } from "../types/MenuItem";
 import { Category } from "./CategoryFilter";
 import { calculateRealisticPrice } from "../utils/priceCalculator";
@@ -150,9 +150,27 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setShowProductFields(false);
   };
 
+  // Create a ref for the modal content
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside modal
+  const handleClickOutside = (event: MouseEvent) => {
+    if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      onCancel();
+    }
+  };
+
+  // Add and remove event listener
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div ref={modalRef} className="bg-white rounded-lg w-96 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white p-6 pb-3 border-b mb-4 shadow-sm">
           <h3 className="text-lg font-semibold">{t('createProduct.title')}</h3>
         </div>
