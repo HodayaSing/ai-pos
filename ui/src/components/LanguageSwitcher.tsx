@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocalization } from '../context/LocalizationContext';
 
 interface LanguageSwitcherProps {
@@ -17,7 +17,6 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   isProductLanguage = false
 }) => {
   const { language, t, setLanguage } = useLocalization();
-  const [isLoading, setIsLoading] = useState<'en' | 'he' | null>(null);
 
   // Use the provided activeLanguage if available, otherwise use the context language
   const displayLanguage = activeLanguage || language;
@@ -26,9 +25,6 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   const handleLanguageSelect = (lang: 'en' | 'he') => {
     console.log(`Language selected: ${lang}`);
     
-    // Set loading state for the selected language
-    setIsLoading(lang);
-    
     // If onLanguageChange prop is provided, call it
     if (onLanguageChange) {
       onLanguageChange(lang);
@@ -36,11 +32,6 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       // Otherwise, set the app-wide language
       setLanguage(lang);
     }
-    
-    // Clear loading state after a short delay
-    setTimeout(() => {
-      setIsLoading(null);
-    }, 500);
   };
 
   return (
@@ -59,7 +50,6 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       <div className="flex rounded-md overflow-hidden border border-gray-300">
         <button
           onClick={() => handleLanguageSelect('en')}
-          disabled={isLoading !== null}
           className={`px-2 py-1 text-xs font-medium transition-colors ${
             displayLanguage === 'en'
               ? 'bg-blue-500 text-white'
@@ -67,13 +57,10 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           }`}
           aria-label="Switch to English"
         >
-          {isLoading === 'en' ? (
-            <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          ) : compact ? 'EN' : t('language.en')}
+          {compact ? 'EN' : t('language.en')}
         </button>
         <button
           onClick={() => handleLanguageSelect('he')}
-          disabled={isLoading !== null}
           className={`px-2 py-1 text-xs font-medium transition-colors ${
             displayLanguage === 'he'
               ? 'bg-blue-500 text-white'
@@ -81,9 +68,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           }`}
           aria-label="Switch to Hebrew"
         >
-          {isLoading === 'he' ? (
-            <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          ) : compact ? 'HE' : t('language.he')}
+          {compact ? 'HE' : t('language.he')}
         </button>
       </div>
     </div>
