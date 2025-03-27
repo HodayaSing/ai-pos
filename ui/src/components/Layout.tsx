@@ -18,7 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen bg-gray-100">
       {!isCameraPage && <Sidebar />}
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopNav />
+        {!isCameraPage && <TopNav />}
         <div className="flex flex-1 overflow-hidden">
           <ContentContainer>
             {children}
