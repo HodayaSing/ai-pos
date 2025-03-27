@@ -26,6 +26,7 @@ export const Camera = () => {
   const [recipes, setRecipes] = useState<RecipeRecommendation[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [rawResponse, setRawResponse] = useState<string | null>(null);
+  const [showRecipe, setShowRecipe] = useState(false);
 
   /**
    * Handle image capture from camera
@@ -34,6 +35,7 @@ export const Camera = () => {
     setCapturedImage(imageData);
     setIsCapturing(true);
     setError(null);
+    setShowRecipe(false);
     
     try {
       // Recognize items in the image
@@ -77,6 +79,13 @@ export const Camera = () => {
   };
 
   /**
+   * Handle creating a recipe
+   */
+  const handleCreateRecipe = () => {
+    setShowRecipe(true);
+  };
+
+  /**
    * Reset the state to capture a new image
    */
   const handleReset = () => {
@@ -85,6 +94,7 @@ export const Camera = () => {
     setRecipes([]);
     setError(null);
     setRawResponse(null);
+    setShowRecipe(false);
   };
 
   // Function to use a test image for debugging
@@ -121,14 +131,13 @@ export const Camera = () => {
         </div>
       )}
 
-      {/* Camera View */}
-      <CameraView 
-        onCapture={handleCapture} 
-        isProcessing={isCapturing} 
-      />
-
-      {/* Display captured image */}
-      {capturedImage && !isCapturing && (
+      {/* Camera View or Captured Image */}
+      {!capturedImage ? (
+        <CameraView 
+          onCapture={handleCapture} 
+          isProcessing={isCapturing} 
+        />
+      ) : (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Captured Image</h2>
@@ -146,11 +155,23 @@ export const Camera = () => {
               className="w-full h-auto rounded-lg shadow-md" 
             />
           </div>
+          
+          {/* Create Recipe Button */}
+          {!isCapturing && !showRecipe && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={handleCreateRecipe}
+                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-lg font-bold"
+              >
+                Create a recipe
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Recipe Recommendations */}
-      {capturedImage && !isCapturing && (
+      {/* Recognized Items and Recipe Recommendations */}
+      {capturedImage && !isCapturing && showRecipe && (
         <RecipeRecommendation
           products={recognizedItems}
           recipes={recipes}
