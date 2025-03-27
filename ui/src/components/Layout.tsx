@@ -4,12 +4,16 @@ import { TopNav } from './TopNav';
 import { ContentContainer } from './ContentContainer';
 import { OrderSidebar } from './OrderSidebar';
 import { SelectedItemsBar } from './SelectedItemsBar';
+import { useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const location = useLocation();
+  const isCameraPage = location.pathname === '/camera';
+
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
@@ -19,9 +23,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <ContentContainer>
             {children}
           </ContentContainer>
-          <OrderSidebar />
+          {!isCameraPage && <OrderSidebar />}
         </div>
-        <SelectedItemsBar />
+        {!isCameraPage && <SelectedItemsBar />}
       </div>
     </div>
   );
