@@ -105,15 +105,6 @@ export const Camera = () => {
         </p>
       </div>
 
-      {/* Test button for debugging - Placed at the top for visibility */}
-      <div className="mb-4 text-center">
-        <button
-          onClick={handleTestImage}
-          className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-md text-lg font-bold"
-        >
-          🧪 Use Test Image (Debug)
-        </button>
-      </div>
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
