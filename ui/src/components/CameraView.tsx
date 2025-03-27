@@ -79,15 +79,27 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCapture, isProcessing 
         </div>
       )}
       
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-lg shadow-lg bg-black">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-lg shadow-lg bg-black" style={{ height: '80vh' }}>
         {/* Camera feed */}
         <video 
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className="w-full h-auto"
+          className="w-full h-full object-cover"
         />
+        
+        {/* Capture button at the bottom of camera view */}
+        {isCameraActive && !isProcessing && (
+          <div className="absolute inset-x-0 bottom-0 flex justify-center pb-4">
+            <button
+              onClick={handleCapture}
+              className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-lg font-bold opacity-90"
+            >
+              What do we have?
+            </button>
+          </div>
+        )}
         
         {/* Overlay when processing */}
         {isProcessing && (
@@ -109,18 +121,6 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCapture, isProcessing 
           </div>
         )}
       </div>
-      
-      <button
-        onClick={handleCapture}
-        disabled={!isCameraActive || isProcessing}
-        className={`mt-4 px-6 py-2 rounded-md text-white font-medium ${
-          !isCameraActive || isProcessing
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-orange-500 hover:bg-orange-600'
-        }`}
-      >
-        {isProcessing ? 'Processing...' : 'Capture Image'}
-      </button>
       
       <p className="mt-2 text-sm text-gray-600">
         Position the food items clearly in the camera view before capturing.

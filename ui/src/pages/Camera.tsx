@@ -97,9 +97,9 @@ export const Camera = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Image Recognition Camera</h1>
+    <div className="w-full max-w-full px-2 py-2">
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-bold text-gray-800">Hungry Helper</h1>
         <p className="text-gray-600">
           Capture an image to identify objects and get recipe recommendations for food items
         </p>

@@ -20,9 +20,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="flex flex-col flex-1 overflow-hidden">
         {!isCameraPage && <TopNav />}
         <div className="flex flex-1 overflow-hidden">
-          <ContentContainer>
-            {children}
-          </ContentContainer>
+          {isCameraPage ? (
+            <div className="w-full h-full overflow-auto">
+              {children}
+            </div>
+          ) : (
+            <ContentContainer>
+              {children}
+            </ContentContainer>
+          )}
           {!isCameraPage && <OrderSidebar />}
         </div>
         {!isCameraPage && <SelectedItemsBar />}
