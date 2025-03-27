@@ -540,7 +540,7 @@ export const generateProductTranslations = async (req: Request, res: Response) =
 };
 
 /**
- * Recognize products in an image using AI
+ * Recognize items in an image using AI Vision API
  * @param req Express request object
  * @param res Express response object
  */
@@ -562,19 +562,6 @@ export const recognizeProducts = async (req: Request, res: Response) => {
       });
     }
     
-    // Create a prompt for the AI to recognize products in the image
-    const prompt = `
-      Analyze this image and identify all food items or ingredients visible.
-      Return a JSON array of objects, where each object has a "name" property for the food item and a "confidence" property (a number between 0 and 1) indicating how confident you are in the identification.
-      Only include actual food items or ingredients, not plates, utensils, or other non-food objects.
-      Example response format:
-      [
-        {"name": "tomato", "confidence": 0.95},
-        {"name": "onion", "confidence": 0.87},
-        {"name": "chicken breast", "confidence": 0.92}
-      ]
-    `;
-    
     // Log the first 100 characters of the image data for debugging
     console.log('Received image data (first 100 chars):', imageData.substring(0, 100));
     
@@ -587,14 +574,17 @@ export const recognizeProducts = async (req: Request, res: Response) => {
     
     console.log('Calling OpenAI API with vision model...');
     
-    // Call OpenAI API to analyze the image
+    // Call OpenAI API to analyze the image using the Vision API format
     const response = await openai.chat.completions.create({
       model: "gpt-4o",  // Using the latest GPT-4o model which supports vision
       messages: [
         {
           role: "user",
           content: [
-            { type: "text", text: prompt },
+            { 
+              type: "text", 
+              text: "Analyze this image and identify all items visible. For each item, provide a name and confidence level (0-1). Format your response as a JSON array of objects with 'name' and 'confidence' properties." 
+            },
             { 
               type: "image_url", 
               image_url: { 
@@ -605,34 +595,72 @@ export const recognizeProducts = async (req: Request, res: Response) => {
           ],
         },
       ],
-      max_tokens: 1000,
-      response_format: { type: "json_object" },
+      max_tokens: 300,
     });
     
     console.log('OpenAI API response received');
     
     // Extract the response text
-    const responseText = response.choices[0]?.message?.content || '{"products": []}';
+    const responseText = response.choices[0]?.message?.content || '[]';
+    console.log('Response text:', responseText);
     
     try {
-      // Parse the JSON response
-      const parsedResponse = JSON.parse(responseText);
+      // Try to parse the response as JSON
+      let items = [];
       
-      // Ensure the response has the expected format
-      const products = Array.isArray(parsedResponse) ? parsedResponse : 
-                      (parsedResponse.products || parsedResponse.items || parsedResponse.food_items || []);
+      // First, try to parse it directly as a JSON array
+      try {
+        const directParse = JSON.parse(responseText);
+        if (Array.isArray(directParse)) {
+          items = directParse;
+        } else if (directParse.items || directParse.products || directParse.objects) {
+          // If it's an object with an items/products/objects array
+          items = directParse.items || directParse.products || directParse.objects;
+        }
+      } catch (directParseError) {
+        // If direct parsing fails, try to extract JSON from the text
+        console.log('Direct JSON parsing failed, trying to extract JSON from text');
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          items = JSON.parse(jsonMatch[0]);
+        } else {
+          // If no JSON array found, create items from text analysis
+          console.log('No JSON array found in response, creating items from text');
+          const lines = responseText.split('\n');
+          for (const line of lines) {
+            const itemMatch = line.match(/["']?([^"']+)["']?.*?(\d+\.\d+|\d+)/);
+            if (itemMatch) {
+              items.push({
+                name: itemMatch[1].trim(),
+                confidence: parseFloat(itemMatch[2])
+              });
+            }
+          }
+        }
+      }
+      
+      // Ensure each item has the correct format
+      items = items.map(item => ({
+        name: item.name || item.item || item.object || "Unknown item",
+        confidence: item.confidence || item.score || item.probability || 0.5
+      }));
       
       return res.json({
         success: true,
         data: {
-          products: products
+          products: items
         }
       });
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError, responseText);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to parse AI response' 
+      
+      // If all parsing fails, return the raw text as a fallback
+      return res.json({
+        success: true,
+        data: {
+          products: [{ name: "Raw AI response", confidence: 1.0 }],
+          rawResponse: responseText
+        }
       });
     }
   } catch (error: any) {

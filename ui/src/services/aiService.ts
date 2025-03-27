@@ -19,7 +19,7 @@ interface AiImageResponse {
   };
 }
 
-interface RecognizedProduct {
+interface RecognizedItem {
   name: string;
   confidence?: number;
 }
@@ -31,10 +31,11 @@ interface RecipeRecommendation {
   instructions?: string[];
 }
 
-interface ProductRecognitionResponse {
+interface ItemRecognitionResponse {
   success: boolean;
   data: {
-    products: RecognizedProduct[];
+    products: RecognizedItem[];
+    rawResponse?: string;
   };
 }
 
@@ -118,13 +119,13 @@ export const translateText = async (
 };
 
 /**
- * Recognizes products in an image using AI
+ * Recognizes items in an image using AI
  * @param imageData - The base64 encoded image data
- * @returns A promise that resolves to the recognized products
+ * @returns A promise that resolves to the recognized items
  */
 export const recognizeProducts = async (
   imageData: string
-): Promise<ProductRecognitionResponse> => {
+): Promise<ItemRecognitionResponse> => {
   const response = await fetch('http://localhost:3000/api/ai/recognize-products', {
     method: 'POST',
     headers: {
@@ -143,12 +144,12 @@ export const recognizeProducts = async (
 };
 
 /**
- * Gets recipe recommendations based on recognized products
- * @param products - The list of recognized products
+ * Gets recipe recommendations based on recognized items
+ * @param products - The list of recognized items (preferably food items)
  * @returns A promise that resolves to the recipe recommendations
  */
 export const getRecipeRecommendations = async (
-  products: RecognizedProduct[]
+  products: RecognizedItem[]
 ): Promise<RecipeRecommendationResponse> => {
   const response = await fetch('http://localhost:3000/api/ai/recipe-recommendations', {
     method: 'POST',

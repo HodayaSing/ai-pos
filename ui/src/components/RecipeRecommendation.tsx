@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface RecognizedProduct {
+interface RecognizedItem {
   name: string;
   confidence?: number;
 }
@@ -13,13 +13,13 @@ interface RecipeRecommendation {
 }
 
 interface RecipeRecommendationProps {
-  products: RecognizedProduct[];
+  products: RecognizedItem[];
   recipes: RecipeRecommendation[];
   isLoading: boolean;
 }
 
 /**
- * Component for displaying recognized products and recipe recommendations
+ * Component for displaying recognized items and recipe recommendations
  */
 export const RecipeRecommendation: React.FC<RecipeRecommendationProps> = ({
   products,
@@ -36,12 +36,12 @@ export const RecipeRecommendation: React.FC<RecipeRecommendationProps> = ({
 
   return (
     <div className="mt-8">
-      {/* Recognized Products Section */}
+      {/* Recognized Items Section */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Recognized Products</h2>
+        <h2 className="text-xl font-semibold mb-4">Recognized Items</h2>
         
         {products.length === 0 ? (
-          <p className="text-gray-500">No products recognized. Try capturing a clearer image.</p>
+          <p className="text-gray-500">No items recognized. Try capturing a clearer image.</p>
         ) : (
           <div className="bg-white rounded-lg shadow p-4">
             <ul className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -66,7 +66,7 @@ export const RecipeRecommendation: React.FC<RecipeRecommendationProps> = ({
         <h2 className="text-xl font-semibold mb-4">Recipe Recommendations</h2>
         
         {recipes.length === 0 ? (
-          <p className="text-gray-500">No recipes available. Try capturing an image with more recognizable food items.</p>
+          <p className="text-gray-500">No recipes available. Try capturing an image with recognizable food items.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {recipes.map((recipe, index) => (

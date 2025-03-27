@@ -3,7 +3,7 @@ import { CameraView } from '../components/CameraView';
 import { RecipeRecommendation } from '../components/RecipeRecommendation';
 import { recognizeProducts, getRecipeRecommendations } from '../services/aiService';
 
-interface RecognizedProduct {
+interface RecognizedItem {
   name: string;
   confidence?: number;
 }
@@ -16,15 +16,16 @@ interface RecipeRecommendation {
 }
 
 /**
- * Camera page component for food recognition and recipe recommendations
+ * Camera page component for image recognition and recipe recommendations
  */
 export const Camera = () => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isProcessingRecipes, setIsProcessingRecipes] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [recognizedProducts, setRecognizedProducts] = useState<RecognizedProduct[]>([]);
+  const [recognizedItems, setRecognizedItems] = useState<RecognizedItem[]>([]);
   const [recipes, setRecipes] = useState<RecipeRecommendation[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [rawResponse, setRawResponse] = useState<string | null>(null);
 
   /**
    * Handle image capture from camera
@@ -35,15 +36,23 @@ export const Camera = () => {
     setError(null);
     
     try {
-      // Recognize products in the image
-      const productResponse = await recognizeProducts(imageData);
+      // Recognize items in the image
+      const itemResponse = await recognizeProducts(imageData);
       
-      if (productResponse.success && productResponse.data.products.length > 0) {
-        setRecognizedProducts(productResponse.data.products);
+      // Check if there's a raw response for debugging
+      if (itemResponse.data.rawResponse) {
+        console.log('Raw AI response:', itemResponse.data.rawResponse);
+        setRawResponse(itemResponse.data.rawResponse);
+      } else {
+        setRawResponse(null);
+      }
+      
+      if (itemResponse.success && itemResponse.data.products.length > 0) {
+        setRecognizedItems(itemResponse.data.products);
         
-        // Get recipe recommendations based on recognized products
+        // Get recipe recommendations based on recognized food items
         setIsProcessingRecipes(true);
-        const recipeResponse = await getRecipeRecommendations(productResponse.data.products);
+        const recipeResponse = await getRecipeRecommendations(itemResponse.data.products);
         
         if (recipeResponse.success) {
           setRecipes(recipeResponse.data.recipes);
@@ -52,14 +61,14 @@ export const Camera = () => {
           setRecipes([]);
         }
       } else {
-        setRecognizedProducts([]);
+        setRecognizedItems([]);
         setRecipes([]);
-        setError('No products recognized in the image. Please try again with a clearer image.');
+        setError('No items recognized in the image. Please try again with a clearer image.');
       }
     } catch (err) {
       console.error('Error processing image:', err);
       setError('An error occurred while processing the image. Please try again.');
-      setRecognizedProducts([]);
+      setRecognizedItems([]);
       setRecipes([]);
     } finally {
       setIsCapturing(false);
@@ -72,9 +81,10 @@ export const Camera = () => {
    */
   const handleReset = () => {
     setCapturedImage(null);
-    setRecognizedProducts([]);
+    setRecognizedItems([]);
     setRecipes([]);
     setError(null);
+    setRawResponse(null);
   };
 
   // Function to use a test image for debugging
@@ -89,9 +99,9 @@ export const Camera = () => {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Food Recognition Camera</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Image Recognition Camera</h1>
         <p className="text-gray-600">
-          Capture an image of food items to get recipe recommendations
+          Capture an image to identify objects and get recipe recommendations for food items
         </p>
       </div>
 
@@ -109,6 +119,14 @@ export const Camera = () => {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
           <strong className="font-bold">Error: </strong>
           <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+      
+      {/* Debug: Raw AI Response */}
+      {rawResponse && (
+        <div className="bg-gray-100 border border-gray-400 text-gray-700 px-4 py-3 rounded relative mb-4">
+          <strong className="font-bold">Debug - Raw AI Response: </strong>
+          <pre className="mt-2 text-xs overflow-auto max-h-40">{rawResponse}</pre>
         </div>
       )}
 
@@ -143,7 +161,7 @@ export const Camera = () => {
       {/* Recipe Recommendations */}
       {capturedImage && !isCapturing && (
         <RecipeRecommendation
-          products={recognizedProducts}
+          products={recognizedItems}
           recipes={recipes}
           isLoading={isProcessingRecipes}
         />
