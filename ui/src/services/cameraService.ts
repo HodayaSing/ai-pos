@@ -55,24 +55,47 @@ export const stopCamera = (stream: MediaStream): void => {
 /**
  * Captures an image from the video stream
  * @param videoElement - The video element containing the stream
+ * @param quality - The quality of the image (0-1), defaults to 0.7
+ * @param maxWidth - The maximum width of the image, defaults to 1280
  * @returns The captured image as a base64 data URL
  */
-export const captureImage = (videoElement: HTMLVideoElement): string | null => {
+export const captureImage = (
+  videoElement: HTMLVideoElement, 
+  quality: number = 0.7, 
+  maxWidth: number = 1280
+): string | null => {
   try {
+    // Create initial canvas with original dimensions
     const canvas = document.createElement('canvas');
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
+    const originalWidth = videoElement.videoWidth;
+    const originalHeight = videoElement.videoHeight;
+    
+    // Calculate new dimensions while maintaining aspect ratio
+    let newWidth = originalWidth;
+    let newHeight = originalHeight;
+    
+    if (originalWidth > maxWidth) {
+      const aspectRatio = originalHeight / originalWidth;
+      newWidth = maxWidth;
+      newHeight = Math.round(maxWidth * aspectRatio);
+    }
+    
+    // Set canvas to the new dimensions
+    canvas.width = newWidth;
+    canvas.height = newHeight;
     
     const context = canvas.getContext('2d');
     if (!context) {
       throw new Error('Could not get canvas context');
     }
     
-    // Draw the current video frame to the canvas
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    // Draw the current video frame to the canvas with resizing
+    context.drawImage(videoElement, 0, 0, newWidth, newHeight);
     
-    // Convert the canvas to a data URL (base64 encoded image)
-    return canvas.toDataURL('image/jpeg', 0.9);
+    console.log(`Image resized from ${originalWidth}x${originalHeight} to ${newWidth}x${newHeight}`);
+    
+    // Convert the canvas to a data URL (base64 encoded image) with specified quality
+    return canvas.toDataURL('image/jpeg', quality);
   } catch (error) {
     console.error('Error capturing image:', error);
     return null;
