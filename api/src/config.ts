@@ -5,7 +5,7 @@ dotenv.config();
 // Server configuration
 export const config = {
   server: {
-    port: process.env.PORT || 3000
+    port: process.env.PORT || 3001
   },
   cors: {
     allowedOrigins: [

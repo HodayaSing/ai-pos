@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { config } from '../config';
 import { downloadImageFromUrl } from '../utils/fileUpload';
 import * as ProductModel from '../models/productModel';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface ProductData {
   name: string;
@@ -530,6 +532,208 @@ export const generateProductTranslations = async (req: Request, res: Response) =
     return res.json(results);
   } catch (error: any) {
     console.error('Error in generate product translations endpoint:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Server error' 
+    });
+  }
+};
+
+/**
+ * Recognize products in an image using AI
+ * @param req Express request object
+ * @param res Express response object
+ */
+export const recognizeProducts = async (req: Request, res: Response) => {
+  try {
+    const { imageData } = req.body;
+    
+    if (!imageData) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Image data is required' 
+      });
+    }
+
+    if (!config.ai.apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'OpenAI API key is not configured. Please set the AI_API_KEY environment variable.'
+      });
+    }
+    
+    // Create a prompt for the AI to recognize products in the image
+    const prompt = `
+      Analyze this image and identify all food items or ingredients visible.
+      Return a JSON array of objects, where each object has a "name" property for the food item and a "confidence" property (a number between 0 and 1) indicating how confident you are in the identification.
+      Only include actual food items or ingredients, not plates, utensils, or other non-food objects.
+      Example response format:
+      [
+        {"name": "tomato", "confidence": 0.95},
+        {"name": "onion", "confidence": 0.87},
+        {"name": "chicken breast", "confidence": 0.92}
+      ]
+    `;
+    
+    // Log the first 100 characters of the image data for debugging
+    console.log('Received image data (first 100 chars):', imageData.substring(0, 100));
+    
+    // Ensure the image data is properly formatted for OpenAI API
+    // If it's a base64 string without the data URL prefix, add it
+    let formattedImageData = imageData;
+    if (!imageData.startsWith('data:') && !imageData.startsWith('http')) {
+      formattedImageData = `data:image/jpeg;base64,${imageData.replace(/^data:image\/jpeg;base64,/, '')}`;
+    }
+    
+    console.log('Calling OpenAI API with vision model...');
+    
+    // Call OpenAI API to analyze the image
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",  // Using the latest GPT-4o model which supports vision
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { 
+              type: "image_url", 
+              image_url: { 
+                url: formattedImageData,
+                detail: "high"
+              } 
+            }
+          ],
+        },
+      ],
+      max_tokens: 1000,
+      response_format: { type: "json_object" },
+    });
+    
+    console.log('OpenAI API response received');
+    
+    // Extract the response text
+    const responseText = response.choices[0]?.message?.content || '{"products": []}';
+    
+    try {
+      // Parse the JSON response
+      const parsedResponse = JSON.parse(responseText);
+      
+      // Ensure the response has the expected format
+      const products = Array.isArray(parsedResponse) ? parsedResponse : 
+                      (parsedResponse.products || parsedResponse.items || parsedResponse.food_items || []);
+      
+      return res.json({
+        success: true,
+        data: {
+          products: products
+        }
+      });
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError, responseText);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to parse AI response' 
+      });
+    }
+  } catch (error: any) {
+    console.error('Error in recognize products endpoint:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Server error' 
+    });
+  }
+};
+
+/**
+ * Get recipe recommendations based on recognized products
+ * @param req Express request object
+ * @param res Express response object
+ */
+export const getRecipeRecommendations = async (req: Request, res: Response) => {
+  try {
+    const { products } = req.body;
+    
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Products array is required and must not be empty' 
+      });
+    }
+
+    if (!config.ai.apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'OpenAI API key is not configured. Please set the AI_API_KEY environment variable.'
+      });
+    }
+    
+    // Extract product names
+    const productNames = products.map(p => p.name).join(', ');
+    
+    // Create a prompt for the AI to generate recipe recommendations
+    const prompt = `
+      Based on the following ingredients: ${productNames}
+      
+      Suggest 3 recipes that can be made using some or all of these ingredients, plus common pantry staples.
+      
+      Return your response as a JSON array of recipe objects, where each object has the following properties:
+      - name: The name of the recipe
+      - description: A brief description of the dish
+      - ingredients: An array of strings, each representing an ingredient with approximate quantity
+      - instructions: An array of strings, each representing a step in the cooking process
+      
+      Example format:
+      [
+        {
+          "name": "Recipe Name",
+          "description": "Brief description of the dish",
+          "ingredients": ["1 cup ingredient1", "2 tbsp ingredient2", ...],
+          "instructions": ["Step 1: Do this", "Step 2: Do that", ...]
+        },
+        ...
+      ]
+    `;
+    
+    // Call OpenAI API to generate recipe recommendations
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a professional chef specializing in creating recipes from available ingredients. Provide practical, delicious recipes that are easy to follow.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 2000,
+    });
+
+    // Extract the response text
+    const responseText = completion.choices[0]?.message?.content || '{"recipes": []}';
+    
+    try {
+      // Parse the JSON response
+      const parsedResponse = JSON.parse(responseText);
+      
+      // Ensure the response has the expected format
+      const recipes = Array.isArray(parsedResponse) ? parsedResponse : 
+                     (parsedResponse.recipes || []);
+      
+      return res.json({
+        success: true,
+        data: {
+          recipes: recipes
+        }
+      });
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError, responseText);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to parse AI response' 
+      });
+    }
+  } catch (error: any) {
+    console.error('Error in recipe recommendations endpoint:', error);
     return res.status(500).json({ 
       success: false, 
       error: error.message || 'Server error' 

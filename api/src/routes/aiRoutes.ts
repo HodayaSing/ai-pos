@@ -5,7 +5,9 @@ import {
   modifyProduct, 
   generateDishImage,
   translateText,
-  generateProductTranslations
+  generateProductTranslations,
+  recognizeProducts,
+  getRecipeRecommendations
 } from '../controllers/aiController';
 
 const router = express.Router();
@@ -17,5 +19,7 @@ router.post('/modify-product', modifyProduct);
 router.post('/generate-dish-image', generateDishImage);
 router.post('/translate', translateText);
 router.post('/generate-product-translations', generateProductTranslations);
+router.post('/recognize-products', recognizeProducts);
+router.post('/recipe-recommendations', getRecipeRecommendations);
 
 export default router;

@@ -1,6 +1,7 @@
 import { Home } from "./pages/Home";
 import { HomeHe } from "./pages/HomeHe";
 import { NotFound } from "./pages/NotFound";
+import { Camera } from "./pages/Camera";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -17,6 +18,10 @@ export const browserRouter = createBrowserRouter([
       {
         path: "/he",
         element: <HomeHe />,
+      },
+      {
+        path: "/camera",
+        element: <Camera />,
       },
       { path: "*", element: <NotFound /> },
     ],

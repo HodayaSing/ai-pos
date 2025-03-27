@@ -19,6 +19,32 @@ interface AiImageResponse {
   };
 }
 
+interface RecognizedProduct {
+  name: string;
+  confidence?: number;
+}
+
+interface RecipeRecommendation {
+  name: string;
+  description: string;
+  ingredients: string[];
+  instructions?: string[];
+}
+
+interface ProductRecognitionResponse {
+  success: boolean;
+  data: {
+    products: RecognizedProduct[];
+  };
+}
+
+interface RecipeRecommendationResponse {
+  success: boolean;
+  data: {
+    recipes: RecipeRecommendation[];
+  };
+}
+
 /**
  * Enhances a product using AI based on instructions
  * @param product - The product to enhance
@@ -89,4 +115,54 @@ export const translateText = async (
   targetLanguage: 'en' | 'he'
 ): Promise<string> => {
   return await translateTextService(text, targetLanguage);
+};
+
+/**
+ * Recognizes products in an image using AI
+ * @param imageData - The base64 encoded image data
+ * @returns A promise that resolves to the recognized products
+ */
+export const recognizeProducts = async (
+  imageData: string
+): Promise<ProductRecognitionResponse> => {
+  const response = await fetch('http://localhost:3000/api/ai/recognize-products', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      imageData,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to recognize products');
+  }
+
+  return await response.json();
+};
+
+/**
+ * Gets recipe recommendations based on recognized products
+ * @param products - The list of recognized products
+ * @returns A promise that resolves to the recipe recommendations
+ */
+export const getRecipeRecommendations = async (
+  products: RecognizedProduct[]
+): Promise<RecipeRecommendationResponse> => {
+  const response = await fetch('http://localhost:3000/api/ai/recipe-recommendations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      products,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get recipe recommendations');
+  }
+
+  return await response.json();
 };
