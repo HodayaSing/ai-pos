@@ -31,7 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
           {!isCameraPage && <OrderSidebar />}
         </div>
-        {!isCameraPage && <SelectedItemsBar />}
+        {/* SelectedItemsBar removed */}
       </div>
     </div>
   );
