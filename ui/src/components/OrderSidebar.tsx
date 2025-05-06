@@ -27,8 +27,11 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [showCouponModal, setShowCouponModal] = useState(false); // State for Coupon Modal
   const [tempDiscount, setTempDiscount] = useState(discountAmount.toString());
   const [tempNote, setTempNote] = useState(orderNote);
+  const [tempCouponCode, setTempCouponCode] = useState(''); // State for coupon code input
+  const [tempCouponDiscount, setTempCouponDiscount] = useState(''); // State for coupon discount input
   const [tempTipType, setTempTipType] = useState<TipType>(tipType);
   const [tempTipValue, setTempTipValue] = useState(tipValue.toString());
   
@@ -65,6 +68,19 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
       setTipValue(tipVal);
     }
     setShowTipModal(false);
+  };
+
+  // Handle coupon submission (placeholder for now)
+  const handleCouponSubmit = () => {
+    // TODO: Add logic to validate coupon and apply discount via context
+    console.log('Applying coupon:', tempCouponCode, 'Discount:', tempCouponDiscount); 
+    // For now, just parse the discount amount and apply it using the existing setDiscountAmount
+    // This assumes the coupon modal directly sets the final discount amount
+    const discount = parseFloat(tempCouponDiscount);
+    if (!isNaN(discount) && discount >= 0) {
+      setDiscountAmount(discount); // Using existing discount logic for now
+    }
+    setShowCouponModal(false); 
   };
 
   // Format tip display for the summary
@@ -152,7 +168,15 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
             >
               Discount
             </button>
-            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm transition-colors">
+            <button 
+              onClick={() => {
+                // Reset temporary fields when opening
+                setTempCouponCode(''); 
+                setTempCouponDiscount(''); 
+                setShowCouponModal(true);
+              }}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm transition-colors"
+            >
               Coupon
             </button>
             <button 
@@ -410,6 +434,60 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
               </button>
               <button
                 onClick={handleTipSubmit}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coupon Modal */}
+      {showCouponModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-80 shadow-xl">
+            <h3 className="text-lg font-semibold mb-4">Apply Coupon</h3>
+            
+            {/* Coupon Code Input */}
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Coupon Code
+              </label>
+              <input
+                type="text"
+                value={tempCouponCode}
+                onChange={(e) => setTempCouponCode(e.target.value)}
+                placeholder="Enter coupon code"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Discount Amount Input */}
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Discount Amount ($) 
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={tempCouponDiscount}
+                onChange={(e) => setTempCouponDiscount(e.target.value)}
+                placeholder="Enter discount amount"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowCouponModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCouponSubmit}
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
               >
                 Apply
