@@ -24,11 +24,13 @@ interface OrderContextType {
   tipType: TipType;
   tipValue: number;
   tipAmount: number;
-  discountAmount: number;
+  discountAmount: number; // Manual discount
+  couponDiscountAmount: number; // Coupon discount
   total: number;
   setTipType: (type: TipType) => void;
   setTipValue: (value: number) => void;
-  setDiscountAmount: (amount: number) => void;
+  setDiscountAmount: (amount: number) => void; // Setter for manual discount
+  setCouponDiscountAmount: (amount: number) => void; // Setter for coupon discount
   addNote: (note: string) => void;
   orderNote: string;
 }
@@ -45,7 +47,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [tipType, setTipType] = useState<TipType>('percentage');
   const [tipValue, setTipValue] = useState(0); // 0%, 10%, 15%, 20% or fixed amount
-  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0); // Manual discount state
+  const [couponDiscountAmount, setCouponDiscountAmount] = useState(0); // Coupon discount state
   const [orderNote, setOrderNote] = useState('');
 
   // Add an item to the order
@@ -91,6 +94,7 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     setTipValue(0);
     setTipType('percentage');
     setDiscountAmount(0);
+    setCouponDiscountAmount(0); // Reset coupon discount too
     setOrderNote('');
   };
 
@@ -113,7 +117,8 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   // Calculate total with tax, tip, and discount
   const taxRate = 0.18; // 18% tax rate (Israeli VAT from 2025)
   const taxAmount = subtotal * taxRate;
-  const total = subtotal + taxAmount + tipAmount - discountAmount;
+  // Subtract both discounts from the total
+  const total = subtotal + taxAmount + tipAmount - discountAmount - couponDiscountAmount; 
 
   return (
     <OrderContext.Provider 
@@ -128,11 +133,13 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
         tipType,
         tipValue,
         tipAmount,
-        discountAmount,
+        discountAmount, // Manual discount
+        couponDiscountAmount, // Coupon discount
         total,
         setTipType,
         setTipValue,
-        setDiscountAmount,
+        setDiscountAmount, // Setter for manual discount
+        setCouponDiscountAmount, // Setter for coupon discount
         addNote,
         orderNote
       }}

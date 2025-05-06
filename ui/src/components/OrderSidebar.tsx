@@ -14,11 +14,13 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
     tipType,
     tipValue,
     tipAmount,
-    discountAmount,
+    discountAmount, // Manual discount
+    couponDiscountAmount, // Coupon discount
     total,
     setTipType,
     setTipValue,
-    setDiscountAmount,
+    setDiscountAmount, // Setter for manual discount
+    setCouponDiscountAmount, // Setter for coupon discount
     addNote,
     orderNote
   } = useOrder();
@@ -78,7 +80,7 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
     // This assumes the coupon modal directly sets the final discount amount
     const discount = parseFloat(tempCouponDiscount);
     if (!isNaN(discount) && discount >= 0) {
-      setDiscountAmount(discount); // Using existing discount logic for now
+      setCouponDiscountAmount(discount); // Use the new setter for coupon discount
     }
     setShowCouponModal(false); 
   };
@@ -223,6 +225,14 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
             <div className="flex justify-between mb-2">
               <span className="text-gray-600">Discount</span>
               <span className="font-medium text-green-600">-${discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* Coupon Discount (if applied) */}
+          {couponDiscountAmount > 0 && (
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-600">Coupon Discount</span>
+              <span className="font-medium text-green-600">-${couponDiscountAmount.toFixed(2)}</span>
             </div>
           )}
 
