@@ -153,15 +153,13 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
         {/* Order Adjustments */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-sm font-medium text-gray-700">Order Adjustments</h3>
-          </div>
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm transition-colors">
-              Add
-            </button>
-            <button 
-              onClick={() => {
-                setTempDiscount(discountAmount.toString());
+           <h3 className="text-sm font-medium text-gray-700">Order Adjustments</h3>
+           </div>
+           {/* Adjusted grid to cols-3 since 'Add' button is removed */}
+           <div className="grid grid-cols-3 gap-2 mb-3"> 
+             <button 
+               onClick={() => {
+                 setTempDiscount(discountAmount.toString());
                 setShowDiscountModal(true);
               }}
               className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm transition-colors"
