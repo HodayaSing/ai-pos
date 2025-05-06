@@ -428,7 +428,7 @@ const OrderSidebar: React.FC<OrderSidebarProps> = ({ className = '' }) => {
               {/* Preview */}
               {tempTipType === 'percentage' && parseFloat(tempTipValue) > 0 && (
                 <div className="mt-2 text-sm text-gray-600">
-                  Tip amount: ${((subtotal * parseFloat(tempTipValue)) / 100).toFixed(2)}
+                  Tip amount: ${((Math.max(0, subtotal + tax - discountAmount - couponDiscountAmount) * parseFloat(tempTipValue)) / 100).toFixed(2)}
                 </div>
               )}
             </div>

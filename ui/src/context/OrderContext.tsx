@@ -109,16 +109,20 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   // Calculate the subtotal
   const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Calculate tip amount based on type and value
-  const tipAmount = tipType === 'percentage' 
-    ? (subtotal * tipValue) / 100 
-    : tipValue;
-
-  // Calculate total with tax, tip, and discount
+  // Calculate tax amount
   const taxRate = 0.18; // 18% tax rate (Israeli VAT from 2025)
   const taxAmount = subtotal * taxRate;
-  // Subtract both discounts from the total
-  const total = subtotal + taxAmount + tipAmount - discountAmount - couponDiscountAmount; 
+
+  // Calculate the base amount for tip calculation (subtotal + tax - discounts)
+  const amountBeforeTip = subtotal + taxAmount - discountAmount - couponDiscountAmount;
+
+  // Calculate tip amount based on the amount *before* tip
+  const tipAmount = tipType === 'percentage'
+    ? (Math.max(0, amountBeforeTip) * tipValue) / 100 // Use amountBeforeTip, ensure it's not negative
+    : tipValue;
+
+  // Calculate final total
+  const total = amountBeforeTip + tipAmount;
 
   return (
     <OrderContext.Provider 
