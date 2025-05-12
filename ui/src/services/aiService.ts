@@ -1,6 +1,13 @@
 import { IMenuItem } from "../types/MenuItem";
 import { translateText as translateTextService } from "./localizationService";
 
+interface AiSearchResponse {
+  success: boolean;
+  data: any[];
+  query: string;
+  language: string;
+}
+
 interface AiModifyResponse {
   success: boolean;
   data: {
@@ -166,4 +173,44 @@ export const getRecipeRecommendations = async (
   }
 
   return await response.json();
+};
+
+/**
+ * Search products using AI
+ * @param query - The search query
+ * @param language - The language to search in (default: 'en')
+ * @returns A promise that resolves to the search results
+ */
+export const searchProductsWithAI = async (
+  query: string,
+  language?: string
+): Promise<AiSearchResponse> => {
+  // Get the current language from localStorage or use 'en' as default
+  let currentLanguage = language || localStorage.getItem('i18nextLng') || 'en';
+  
+  // Log the original language code
+  console.log('Original language code:', currentLanguage);
+  
+  console.log('Sending AI search request:', { query, language: currentLanguage });
+  
+  const response = await fetch('http://localhost:3000/api/ai/search-products', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query,
+      language: currentLanguage,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('AI search API error:', errorText);
+    throw new Error('Failed to search products with AI');
+  }
+
+  const result = await response.json();
+  console.log('AI search API response:', result);
+  return result;
 };

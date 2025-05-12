@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOrder } from "../context/OrderContext";
 import { useSearch } from "../context/SearchContext";
 import { CategoryFilter } from "../components/CategoryFilter";
@@ -34,11 +34,44 @@ const Home = () => {
   // Get order context
   const { addToOrder, orderItems } = useOrder();
 
-  // Get search query from context
-  const { searchQuery } = useSearch();
+  // Get search query and AI search state from context
+  const { searchQuery, isAiSearchEnabled, toggleAiSearch } = useSearch();
 
-  // Filter items by active categories and search query
-  const filteredItems = filterItems(searchQuery);
+  // State for AI search results
+  const [filteredItems, setFilteredItems] = useState<IMenuItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Effect to handle filtering items, including AI search when enabled
+  useEffect(() => {
+    const performSearch = async () => {
+      console.log('Performing search with query:', searchQuery, 'AI enabled:', isAiSearchEnabled);
+      const result = filterItems(searchQuery, isAiSearchEnabled);
+      
+      // If result is a function (async AI search), execute it
+      if (typeof result === 'function') {
+        setIsSearching(true);
+        try {
+          const aiResults = await result();
+          console.log('AI search results:', aiResults);
+          setFilteredItems(aiResults);
+        } catch (error) {
+          console.error('Error in AI search:', error);
+          // Fall back to regular search
+          const fallbackResults = filterItems(searchQuery, false) as IMenuItem[];
+          console.log('Falling back to regular search results:', fallbackResults);
+          setFilteredItems(fallbackResults);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        // Regular search results
+        console.log('Regular search results:', result);
+        setFilteredItems(result);
+      }
+    };
+    
+    performSearch();
+  }, [searchQuery, isAiSearchEnabled, categories]);
 
   // Check if an item is in the order
   const getItemQuantityInOrder = (itemId: number) => {
@@ -108,12 +141,47 @@ const Home = () => {
   return (
     <div className="h-full">
       {/* Categories */}
-      <CategoryFilter
-        categories={categories}
-        onToggleCategory={toggleCategory}
-        onClearCategories={clearAllCategories}
-        onCreateProduct={() => setShowCreateModal(true)}
-      />
+      <div className="flex items-center justify-between mb-4">
+        <CategoryFilter
+          categories={categories}
+          onToggleCategory={toggleCategory}
+          onClearCategories={clearAllCategories}
+          onCreateProduct={() => setShowCreateModal(true)}
+        />
+        
+        {/* AI Search Toggle Button */}
+        <button
+          onClick={toggleAiSearch}
+          className={`ml-4 px-4 py-2 rounded-md flex items-center ${
+            isAiSearchEnabled 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-200 text-gray-700'
+          }`}
+          title={isAiSearchEnabled ? "Disable AI Search" : "Enable AI Search"}
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-5 w-5 mr-2" 
+            viewBox="0 0 20 20" 
+            fill="currentColor"
+          >
+            <path 
+              fillRule="evenodd" 
+              d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.242a1 1 0 11-1.94-.485L10.47 14H7.53l-.56 2.242a1 1 0 11-1.94-.485L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z" 
+              clipRule="evenodd" 
+            />
+          </svg>
+          {isAiSearchEnabled ? "AI Search: ON" : "AI Search: OFF"}
+        </button>
+      </div>
+
+      {/* Loading indicator for AI search */}
+      {isSearching && (
+        <div className="flex justify-center items-center my-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <span className="ml-2 text-blue-500">Searching with AI...</span>
+        </div>
+      )}
 
       {/* Menu Items Grid */}
       <MenuItemGrid

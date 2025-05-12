@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { IMenuItem } from "../types/MenuItem";
 import * as productService from "../services/productService";
+import * as aiService from "../services/aiService";
 import { Category } from "../components/CategoryFilter";
 
 export const useMenu = () => {
@@ -76,20 +77,78 @@ export const useMenu = () => {
   };
 
   // Function to filter items by active categories and search query
-  const filterItems = (searchQuery: string) => {
-    const activeCategories = categories.filter(cat => cat.active).map(cat => cat.name);
+  const filterItems = (searchQuery: string, useAiSearch: boolean = false) => {
+    // If no search query, just filter by categories
+    if (searchQuery.trim() === '') {
+      const activeCategories = categories.filter(cat => cat.active).map(cat => cat.name);
+      
+      return menuItems.filter(item => {
+        // Filter by category
+        return activeCategories.length === 0 ? true : activeCategories.includes(item.category);
+      });
+    }
     
-    return menuItems.filter(item => {
-      // Filter by category
-      const categoryMatch = activeCategories.length === 0 ? true : activeCategories.includes(item.category);
+    // If AI search is enabled and there's a search query, use AI search
+    if (useAiSearch) {
+      // Return a function that will perform the AI search
+      return async () => {
+        try {
+          setIsLoading(true);
+          const activeCategories = categories.filter(cat => cat.active).map(cat => cat.name);
+          
+          // Call the AI search API
+          const result = await aiService.searchProductsWithAI(searchQuery);
+          
+          console.log('AI Search Results:', result);
+          
+          if (result.success && result.data) {
+            // Map the API results to menu items
+            const aiSearchResults = result.data.map(product => ({
+              id: product.id as number,
+              name: product.name,
+              category: product.category,
+              price: product.price,
+              image: product.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=60",
+              description: product.description
+            }));
+            
+            // Filter by active categories if any
+            return activeCategories.length === 0 
+              ? aiSearchResults 
+              : aiSearchResults.filter(item => activeCategories.includes(item.category));
+          }
+          
+          return [];
+        } catch (error) {
+          console.error('Error performing AI search:', error);
+          setError('Failed to perform AI search. Falling back to regular search.');
+          
+          // Fall back to regular search
+          return regularSearch();
+        } finally {
+          setIsLoading(false);
+        }
+      };
+    }
+    
+    // Regular search function
+    const regularSearch = () => {
+      const activeCategories = categories.filter(cat => cat.active).map(cat => cat.name);
       
-      // Filter by search query (case insensitive)
-      const searchMatch = searchQuery.trim() === '' ? true : 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Item must match both filters
-      return categoryMatch && searchMatch;
-    });
+      return menuItems.filter(item => {
+        // Filter by category
+        const categoryMatch = activeCategories.length === 0 ? true : activeCategories.includes(item.category);
+        
+        // Filter by search query (case insensitive)
+        const searchMatch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        // Item must match both filters
+        return categoryMatch && searchMatch;
+      });
+    };
+    
+    // If AI search is not enabled, use regular search
+    return regularSearch();
   };
 
   // Function to create a new menu item

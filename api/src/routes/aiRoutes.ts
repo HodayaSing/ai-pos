@@ -9,6 +9,7 @@ import {
   recognizeProducts,
   getRecipeRecommendations
 } from '../controllers/aiController';
+import { searchProducts } from '../controllers/aiProductSearchController';
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.post('/translate', translateText);
 router.post('/generate-product-translations', generateProductTranslations);
 router.post('/recognize-products', recognizeProducts);
 router.post('/recipe-recommendations', getRecipeRecommendations);
+router.post('/search-products', searchProducts);
 
 export default router;
