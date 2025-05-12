@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSearch } from '../context/SearchContext';
 
 interface TopNavProps {
@@ -6,26 +6,70 @@ interface TopNavProps {
 }
 
 const TopNav: React.FC<TopNavProps> = ({ className = '' }) => {
-  const { searchQuery, setSearchQuery } = useSearch();
+  const { setSearchQuery, isAiSearchEnabled, toggleAiSearch } = useSearch();
+  const [inputValue, setInputValue] = useState(''); // Local state for input value
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    setInputValue(newValue);
+    // If the input is cleared, immediately update the search query to show all items
+    if (newValue === '') {
+      setSearchQuery('');
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // Trigger search on Enter only if the input is not empty
+    if (event.key === 'Enter' && inputValue !== '') {
+      setSearchQuery(inputValue); // Update global search query on Enter
+    }
+  };
   return (
     <header className={`bg-white shadow-md px-6 py-4 flex items-center justify-between ${className}`}>
       <div className="flex items-center">
         <h1 className="text-xl font-bold text-gray-800">Restro POS</h1>
       </div>
       
-      <div className="relative w-96">
-        <input
-          type="text"
-          placeholder="Search products..."
-          className="w-full px-4 py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+      <div className="flex items-center">
+        <div className="relative w-96">
+          <input
+            type="text"
+            placeholder="Search products and press Enter..." // Updated placeholder
+            className="w-full px-4 py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            value={inputValue} // Use local state for value
+            onChange={handleInputChange} // Update local state and check for empty input
+            onKeyDown={handleKeyDown} // Handle Enter key press
+          />
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
         </div>
+        
+        <button
+          onClick={toggleAiSearch}
+          className={`ml-2 px-3 py-2 rounded-md flex items-center ${
+            isAiSearchEnabled 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-200 text-gray-700'
+          }`}
+          title={isAiSearchEnabled ? "Disable AI Search" : "Enable AI Search"}
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-5 w-5 mr-1" 
+            viewBox="0 0 20 20" 
+            fill="currentColor"
+          >
+            <path 
+              fillRule="evenodd" 
+              d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.242a1 1 0 11-1.94-.485L10.47 14H7.53l-.56 2.242a1 1 0 11-1.94-.485L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z" 
+              clipRule="evenodd" 
+            />
+          </svg>
+          AI Search: {isAiSearchEnabled ? "ON" : "OFF"}
+        </button>
       </div>
       
       <div className="flex items-center space-x-4">
