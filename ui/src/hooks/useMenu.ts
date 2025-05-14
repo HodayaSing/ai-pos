@@ -7,7 +7,7 @@ import { Category } from "../components/CategoryFilter";
 export const useMenu = () => {
   // Define all available categories
   const [categories, setCategories] = useState<Category[]>([
-    { id: 1, name: "Starters", active: true },
+    { id: 1, name: "Starters", active: false },
     { id: 2, name: "Breakfast", active: false },
     { id: 3, name: "Lunch", active: false },
     { id: 4, name: "Supper", active: false },
