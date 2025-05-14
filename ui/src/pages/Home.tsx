@@ -71,7 +71,7 @@ const Home = () => {
     };
     
     performSearch();
-  }, [searchQuery, isAiSearchEnabled, categories]);
+  }, [searchQuery, isAiSearchEnabled, categories, menuItems]); // Added menuItems to ensure re-filter when master list loads
 
   // Check if an item is in the order
   const getItemQuantityInOrder = (itemId: number) => {
