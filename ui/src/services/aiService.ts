@@ -8,6 +8,12 @@ interface AiSearchResponse {
   language: string;
 }
 
+export interface AiConfig {
+  prompt: string;
+  model: string;
+  availableModels?: string[]; // Optional, if the backend provides this
+}
+
 interface AiModifyResponse {
   success: boolean;
   data: {
@@ -213,4 +219,40 @@ export const searchProductsWithAI = async (
   const result = await response.json();
   console.log('AI search API response:', result);
   return result;
+};
+
+/**
+ * Fetches the current AI configuration from the backend.
+ * @returns A promise that resolves to the AI configuration.
+ */
+export const getAiConfig = async (): Promise<AiConfig> => {
+  const response = await fetch('http://localhost:3000/api/ai/config');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Get AI config API error:', errorText);
+    throw new Error('Failed to fetch AI configuration');
+  }
+  return await response.json();
+};
+
+/**
+ * Updates the AI configuration on the backend.
+ * @param config - The AI configuration to save.
+ * @returns A promise that resolves when the configuration is saved.
+ */
+export const updateAiConfig = async (config: Omit<AiConfig, 'availableModels'>): Promise<AiConfig> => {
+  const response = await fetch('http://localhost:3000/api/ai/config', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(config),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Update AI config API error:', errorText);
+    throw new Error('Failed to update AI configuration');
+  }
+  return await response.json(); // Assuming the backend returns the updated config
 };

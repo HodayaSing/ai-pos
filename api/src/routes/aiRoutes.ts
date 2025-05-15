@@ -7,7 +7,9 @@ import {
   translateText,
   generateProductTranslations,
   recognizeProducts,
-  getRecipeRecommendations
+  getRecipeRecommendations,
+  getAiConfiguration, // New controller for getting AI config
+  updateAiConfiguration // New controller for updating AI config
 } from '../controllers/aiController';
 import { searchProducts } from '../controllers/aiProductSearchController';
 
@@ -23,5 +25,9 @@ router.post('/generate-product-translations', generateProductTranslations);
 router.post('/recognize-products', recognizeProducts);
 router.post('/recipe-recommendations', getRecipeRecommendations);
 router.post('/search-products', searchProducts);
+
+// Routes for AI configuration
+router.get('/config', getAiConfiguration);
+router.post('/config', updateAiConfiguration);
 
 export default router;

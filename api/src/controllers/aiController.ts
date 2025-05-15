@@ -768,3 +768,58 @@ export const getRecipeRecommendations = async (req: Request, res: Response) => {
     });
   }
 };
+
+// In-memory store for AI configuration
+let currentAiConfig = {
+  prompt: "Translate the user's product search query into a concise and effective keyword list for a database lookup. Focus on extracting key product names, attributes, and categories. For example, if the user asks for 'red running shoes size 10', the keywords could be 'red, running shoes, size 10'.",
+  model: 'gpt-3.5-turbo',
+  availableModels: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4o', 'gpt-4o-mini', 'claude-2', 'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']
+};
+
+/**
+ * Get current AI configuration
+ * @param _req Express request object
+ * @param res Express response object
+ */
+export const getAiConfiguration = async (_req: Request, res: Response) => {
+  try {
+    // In a real application, you might fetch this from a database or config file
+    res.json(currentAiConfig);
+  } catch (error: any) {
+    console.error('Error fetching AI configuration:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch AI configuration' });
+  }
+};
+
+/**
+ * Update AI configuration
+ * @param req Express request object
+ * @param res Express response object
+ */
+export const updateAiConfiguration = async (req: Request, res: Response) => {
+  try {
+    const { prompt, model } = req.body;
+
+    if (prompt === undefined || model === undefined) {
+      return res.status(400).json({ success: false, error: 'Prompt and model are required' });
+    }
+    
+    // Validate model if necessary (e.g., against a list of known good models)
+    if (!currentAiConfig.availableModels.includes(model)) {
+      // Optionally, add the new model to the list if it's a custom one, or reject
+      // For now, we'll allow any model string but this could be tightened.
+      console.warn(`Model ${model} is not in the predefined availableModels list.`)
+    }
+
+    currentAiConfig.prompt = prompt;
+    currentAiConfig.model = model;
+    
+    // In a real application, you would save this to a database or config file
+    console.log('AI Configuration updated:', currentAiConfig);
+    
+    res.json({ success: true, message: 'AI configuration updated successfully', config: currentAiConfig });
+  } catch (error: any) {
+    console.error('Error updating AI configuration:', error);
+    res.status(500).json({ success: false, error: 'Failed to update AI configuration' });
+  }
+};
